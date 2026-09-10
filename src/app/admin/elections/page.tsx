@@ -17,6 +17,7 @@ export default function ElectionsPage() {
   const [cecUrl, setCecUrl] = useState("");
   const [template, setTemplate] = useState<"blank" | "knesset26" | "knesset25" | "copy">("blank");
   const [copyFrom, setCopyFrom] = useState("");
+  const [edit, setEdit] = useState<{ id: string; name: string; date: string; cecUrl: string } | null>(null);
 
   const load = async () => {
     const r = await fetch("/api/elections", { cache: "no-store" });
@@ -51,6 +52,17 @@ export default function ElectionsPage() {
     if (!confirm(`לפתוח מחדש את "${el.name}" לעריכה?`)) return;
     return call(`/api/elections/${el.id}`, { method: "PATCH", body: JSON.stringify({ action: "reopen" }) }, "מערכת הבחירות נפתחה מחדש", el.id);
   };
+  async function startEdit(el: ElectionSummary) {
+    const r = await fetch(`/api/elections/${el.id}`, { cache: "no-store" });
+    const b = await r.json();
+    setEdit({ id: el.id, name: b.election.election.name, date: b.election.election.date ?? "", cecUrl: b.election.election.cecUrl ?? "" });
+  }
+  async function saveEdit(e: FormEvent) {
+    e.preventDefault();
+    if (!edit) return;
+    const ok = await call(`/api/elections/${edit.id}`, { method: "PATCH", body: JSON.stringify({ action: "update", name: edit.name, date: edit.date, cecUrl: edit.cecUrl }) }, "הפרטים נשמרו", edit.id);
+    if (ok) setEdit(null);
+  }
   const del = (el: ElectionSummary) => {
     if (!confirm(`למחוק לצמיתות את "${el.name}" כולל כל ההיסטוריה שלה?\n\nאין דרך לשחזר מחיקה.`)) return;
     if (!confirm(`בטוח? "${el.name}" תימחק לצמיתות.`)) return;
@@ -80,6 +92,7 @@ export default function ElectionsPage() {
               <div className="text-xs text-slate-500 mt-1 num">{el.date && <>תאריך {el.date} · </>}עודכן {time(el.updatedAt)} · גרסה {el.version}</div>
             </div>
             <div className="flex items-center gap-2">
+              <button className="btn-secondary" disabled={busy !== null} onClick={() => startEdit(el)}>עריכת פרטים</button>
               {!el.isActive && <button className="btn-secondary" disabled={busy !== null} onClick={() => activate(el.id)}>הפעלה</button>}
               {el.status === "open"
                 ? <button className="btn-danger" disabled={busy !== null} onClick={() => close(el)}>סגירה (תוצאות סופיות)</button>
@@ -89,6 +102,21 @@ export default function ElectionsPage() {
           </div>
         ))}
       </div>
+
+      {edit && (
+        <form onSubmit={saveEdit} className="card p-4 space-y-4 border-blue-300 ring-2 ring-blue-100">
+          <h2 className="font-bold">עריכת פרטי מערכת הבחירות</h2>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div><label className="label">שם *</label><input className="input" value={edit.name} onChange={e => setEdit({ ...edit, name: e.target.value })} required autoFocus /></div>
+            <div><label className="label">תאריך</label><input className="input num" type="date" value={edit.date} onChange={e => setEdit({ ...edit, date: e.target.value })} /></div>
+            <div><label className="label">כתובת דף התוצאות של ועדת הבחירות</label><input className="input num" dir="ltr" value={edit.cecUrl} onChange={e => setEdit({ ...edit, cecUrl: e.target.value })} placeholder="https://votes26.bechirot.gov.il/" /></div>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">ניתן לערוך גם מערכת סגורה — אלה פרטים, לא תוצאות.</p>
+            <div className="flex gap-2"><button type="button" className="btn-secondary" onClick={() => setEdit(null)}>ביטול</button><button className="btn-primary" disabled={busy !== null || !edit.name.trim()}>שמירה</button></div>
+          </div>
+        </form>
+      )}
 
       <form onSubmit={create} className="card p-4 space-y-4">
         <h2 className="font-bold">יצירת מערכת בחירות חדשה</h2>

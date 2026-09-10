@@ -163,6 +163,13 @@ export async function setStatus(id: string, status: "open" | "closed"): Promise<
   return saveState({ ...s, status }, status === "closed" ? "סגירת מערכת הבחירות — תוצאות סופיות" : "פתיחה מחדש של מערכת הבחירות", { allowClosed: true });
 }
 
+/** Rename / change date / change CEC URL. Allowed even when closed — these are labels, not results. */
+export async function updateMeta(id: string, meta: { name: string; date: string; cecUrl: string }): Promise<ElectionState> {
+  const s = await getElection(id);
+  if (!s) throw new StoreError("מערכת הבחירות לא נמצאה", 404);
+  return saveState({ ...s, election: { ...s.election, ...meta } }, "עדכון פרטי מערכת הבחירות", { allowClosed: true });
+}
+
 export async function deleteElection(id: string): Promise<void> {
   const activeId = await getActiveId();
   if (id === activeId) throw new StoreError("לא ניתן למחוק את מערכת הבחירות הפעילה — הפעילו אחרת קודם", 400);

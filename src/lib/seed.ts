@@ -11,9 +11,9 @@ export function newId(): string {
 
 export function seedState(): ElectionState {
   const blocs = [
-    { id: "coalition", name: "גוש הקואליציה", color: "#2563eb" },
-    { id: "opposition", name: "גוש האופוזיציה", color: "#f59e0b" },
-    { id: "arab", name: "המפלגות הערביות", color: "#16a34a" },
+    { id: "coalition", name: "גוש הקואליציה", color: "#3b82f6" },
+    { id: "opposition", name: "גוש האופוזיציה", color: "#d97706" },
+    { id: "arab", name: "המפלגות הערביות", color: "#0d9488" },
   ];
   const names: [string, string, string | null][] = [
     ["likud", "הליכוד", "coalition"],
@@ -76,9 +76,9 @@ export function rehearsal2022(): ElectionState {
     election: { name: "חזרה גנרלית — הבחירות לכנסת ה-25 (2022)", date: "2022-11-01", cecUrl: "https://votes25.bechirot.gov.il/" },
     parties: rows.map(([id, name, letters, , blocId], i) => ({ id, name, letters, blocId, order: i })),
     blocs: [
-      { id: "coalition", name: "גוש הימין", color: "#2563eb" },
-      { id: "opposition", name: "גוש המרכז-שמאל", color: "#f59e0b" },
-      { id: "arab", name: "המפלגות הערביות", color: "#16a34a" },
+      { id: "coalition", name: "גוש הימין", color: "#3b82f6" },
+      { id: "opposition", name: "גוש המרכז-שמאל", color: "#d97706" },
+      { id: "arab", name: "המפלגות הערביות", color: "#0d9488" },
     ],
     agreements: [{ a: "labor", b: "meretz" }, { a: "likud", b: "rz" }, { a: "nu", b: "ya" }, { a: "shas", b: "utj" }],
     votes: Object.fromEntries(rows.map(r => [r[0], r[3]])),
@@ -100,8 +100,8 @@ export function blankState(name: string): ElectionState {
     election: { name, date: "", cecUrl: "" },
     parties: [],
     blocs: [
-      { id: "coalition", name: "גוש א", color: "#2563eb" },
-      { id: "opposition", name: "גוש ב", color: "#f59e0b" },
+      { id: "coalition", name: "גוש א", color: "#3b82f6" },
+      { id: "opposition", name: "גוש ב", color: "#d97706" },
     ],
     agreements: [],
     votes: {},

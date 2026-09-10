@@ -1,4 +1,4 @@
-# Deploying version 2.1 (multi-election, close, new columns, diagnostics)
+# Deploying version 2.2 (multi-election, close, new columns, diagnostics, parliament diagram)
 
 Three steps, in this order. Nothing on the live site changes until step 3, and step 1 does not affect the running version 1.
 
@@ -47,6 +47,7 @@ Two quick checks that pinpoint the cause of "changes don't stick":
   - **הסכם עודפים**: `+1` / `−1` = seats the list has *because of* its surplus agreement, i.e. seats with the agreement minus seats if that agreement did not exist (other agreements unchanged). `0` = has an agreement but no effect right now (including when the partner failed the threshold). Blank = no agreement. Both partners are shown, so a pair that gained a seat shows +1 on the partner who got it.
   - **סכנת מנדט**: five-level colour (green → red) of how safe the list's *last* seat is, relative to the other lists with seats. Ranked by "votes it could lose before losing a seat"; the lists are split into five equal groups by rank (10 lists → 2 per colour). Hover for the exact number.
 - **לוח שידור** shows the same two indicators on each list card and "מנדט = N קולות" in the header.
+- **v2.2**: parliament diagram (120 seats on arcs, blocs fill from the right, the 61 line marks a majority; hover a seat for its list), bloc cards beside it, redesigned list cards with a two-cell footer ("למנדט נוסף: עוד N" / "מרווח עד איבוד מנדט: N"), and **עריכת פרטים** on the elections screen to change an election's name, date or CEC URL (also when closed). Default bloc colours changed to a colour-blind-safe trio; existing elections keep whatever colours they have.
 
 ## Rollback (if ever needed)
 

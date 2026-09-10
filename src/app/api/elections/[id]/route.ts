@@ -1,5 +1,5 @@
 import { json } from "@/lib/api";
-import { deleteElection, getElection, listElections, setActive, setStatus, StoreError } from "@/lib/store";
+import { deleteElection, getElection, listElections, setActive, setStatus, updateMeta, StoreError } from "@/lib/store";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -14,11 +14,16 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   return json({ election: s });
 }
 
-/** body: { action: "activate" | "close" | "reopen" } */
+/** body: { action: "activate" | "close" | "reopen" | "update", name?, date?, cecUrl? } */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const { action } = (await req.json().catch(() => ({}))) as { action?: string };
+  const body = (await req.json().catch(() => ({}))) as { action?: string; name?: string; date?: string; cecUrl?: string };
+  const { action } = body;
   try {
-    if (action === "activate") await setActive(params.id);
+    if (action === "update") {
+      if (!body.name?.trim()) return json({ error: "invalid", message: "יש לתת שם למערכת הבחירות" }, { status: 400 });
+      await updateMeta(params.id, { name: body.name.trim(), date: body.date ?? "", cecUrl: (body.cecUrl ?? "").trim() });
+    }
+    else if (action === "activate") await setActive(params.id);
     else if (action === "close") await setStatus(params.id, "closed");
     else if (action === "reopen") await setStatus(params.id, "open");
     else return json({ error: "invalid", message: "פעולה לא מוכרת" }, { status: 400 });
