@@ -19,10 +19,12 @@ export function Toasts({ toasts, remove }: { toasts: ToastMsg[]; remove: (id: nu
 }
 
 function Toast({ t, remove }: { t: ToastMsg; remove: (id: number) => void }) {
-  useEffect(() => { const h = setTimeout(() => remove(t.id), t.kind === "ok" ? 3500 : 8000); return () => clearTimeout(h); }, [t, remove]);
+  // success messages fade; errors stay until dismissed so they cannot be missed
+  useEffect(() => { if (t.kind !== "ok") return; const h = setTimeout(() => remove(t.id), 3500); return () => clearTimeout(h); }, [t, remove]);
   return (
-    <div className={`rounded-xl px-4 py-3 text-sm shadow-lg border ${t.kind === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-red-50 border-red-200 text-red-800"}`}>
-      {t.text}
+    <div className={`rounded-xl px-4 py-3 text-sm shadow-lg border flex items-start gap-3 max-w-md ${t.kind === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-red-50 border-red-300 text-red-800 font-semibold"}`}>
+      <span className="flex-1">{t.kind === "error" && "⚠ "}{t.text}</span>
+      <button className="text-xs opacity-60 hover:opacity-100" onClick={() => remove(t.id)} aria-label="סגירה">✕</button>
     </div>
   );
 }

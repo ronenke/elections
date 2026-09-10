@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useElection } from "@/components/useElection";
 import { Toasts, useToast } from "@/components/Toast";
+import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import { compute } from "@/lib/compute";
 import type { ElectionState } from "@/lib/types";
 import { n, pct, time, signed } from "@/lib/format";
@@ -24,6 +25,7 @@ export default function VotesPage() {
   const published = data?.computed ?? null;
   const dirty = !!(draft && data && JSON.stringify(draft) !== JSON.stringify(data.state));
   const closed = data?.state.status === "closed";
+  useUnsavedGuard(dirty && !closed);
 
   if (!draft || !live) return <p className="text-slate-500">{error ?? "טוען…"}</p>;
 

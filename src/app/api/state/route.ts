@@ -1,20 +1,21 @@
-import { NextResponse } from "next/server";
+import { json } from "@/lib/api";
 import { getState, saveState, StoreError } from "@/lib/store";
 import { compute } from "@/lib/compute";
 import type { ElectionState } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function fail(e: unknown) {
   const err = e as StoreError;
-  return NextResponse.json({ error: "store", message: err.message }, { status: err.status ?? 500 });
+  return json({ error: "store", message: err.message }, { status: err.status ?? 500 });
 }
 
 /** The active election, computed. */
 export async function GET() {
   try {
     const state = await getState();
-    return NextResponse.json({ state, computed: compute(state) });
+    return json({ state, computed: compute(state) });
   } catch (e) { return fail(e); }
 }
 
@@ -24,10 +25,10 @@ export async function PUT(req: Request) {
   try {
     const current = await getState();
     if (body.state.id !== current.id) {
-      return NextResponse.json({ error: "conflict", message: "מערכת הבחירות הפעילה השתנתה. רעננו את הדף.", current }, { status: 409 });
+      return json({ error: "conflict", message: "מערכת הבחירות הפעילה השתנתה. רעננו את הדף.", current }, { status: 409 });
     }
     if (body.expectedVersion !== undefined && body.expectedVersion !== current.version) {
-      return NextResponse.json({ error: "conflict", message: "הנתונים השתנו בינתיים על ידי משתמש אחר. רעננו את הדף ונסו שוב.", current }, { status: 409 });
+      return json({ error: "conflict", message: "הנתונים השתנו בינתיים על ידי משתמש אחר. רעננו את הדף ונסו שוב.", current }, { status: 409 });
     }
     const s = body.state;
     const votes: Record<string, number> = {};
@@ -39,9 +40,9 @@ export async function PUT(req: Request) {
     const next: ElectionState = { ...s, status: current.status, votes, otherValidVotes: Math.max(0, Math.round(Number(s.otherValidVotes) || 0)) };
     const check = compute(next, false);
     if (!check.result.ok && check.result.errors.length) {
-      return NextResponse.json({ error: "invalid", message: check.result.errors.join("; ") }, { status: 400 });
+      return json({ error: "invalid", message: check.result.errors.join("; ") }, { status: 400 });
     }
     const saved = await saveState(next, body.note ?? "עדכון");
-    return NextResponse.json({ state: saved, computed: compute(saved) });
+    return json({ state: saved, computed: compute(saved) });
   } catch (e) { return fail(e); }
 }

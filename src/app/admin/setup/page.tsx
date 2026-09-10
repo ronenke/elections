@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useElection } from "@/components/useElection";
 import { Toasts, useToast } from "@/components/Toast";
+import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import type { ElectionState, Party } from "@/lib/types";
 import { rehearsal2022, seedState } from "@/lib/seed";
 import { ClosedBanner } from "@/components/ClosedBanner";
@@ -14,10 +15,11 @@ export default function SetupPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (data && !draft) setDraft(data.state); }, [data, draft]);
+  const dirty = !!(draft && data && JSON.stringify(draft) !== JSON.stringify(data.state));
+  const closed = data?.state.status === "closed";
+  useUnsavedGuard(dirty && !closed);
   if (!draft) return <p className="text-slate-500">{error ?? "טוען…"}</p>;
 
-  const dirty = !!(data && JSON.stringify(draft) !== JSON.stringify(data.state));
-  const closed = data?.state.status === "closed";
   const parties = [...draft.parties].sort((a, b) => a.order - b.order);
   const upd = (id: string, patch: Partial<Party>) => setDraft(d => d && { ...d, parties: d.parties.map(p => (p.id === id ? { ...p, ...patch } : p)) });
   const move = (id: string, dir: -1 | 1) => setDraft(d => {

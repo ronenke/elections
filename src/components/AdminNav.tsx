@@ -9,6 +9,7 @@ const items = [
   { href: "/admin/audit", label: "פירוט החישוב" },
   { href: "/admin/history", label: "היסטוריה" },
   { href: "/admin/elections", label: "מערכות בחירות" },
+  { href: "/admin/status", label: "מצב" },
 ];
 
 export function AdminNav() {

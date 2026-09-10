@@ -1,4 +1,4 @@
-# Deploying version 2 (multi-election, close, new columns)
+# Deploying version 2.1 (multi-election, close, new columns, diagnostics)
 
 Three steps, in this order. Nothing on the live site changes until step 3, and step 1 does not affect the running version 1.
 
@@ -31,6 +31,14 @@ git push
 Vercel builds for ~1–2 minutes (Deployments tab shows progress).
 
 ✅ Check: open https://elections.keinan.us/admin/elections — you should see your election marked **פעילה · פתוחה**. Open **הזנת קולות**: the line "מנדט = … קולות" appears above the table with the two new columns.
+
+## If something looks wrong after deploying
+
+Open **https://elections.keinan.us/admin/status** (menu: **מצב**). It shows which storage the server is using, whether it can read and write the database, which tables exist, and which election is active — with a green "הכול תקין" or a red list of problems. Send a screenshot of it if anything is red.
+
+Two quick checks that pinpoint the cause of "changes don't stick":
+- Supabase → *Table Editor* → `elections`: is the election you created there? If **yes**, the site was reading stale data (v2.1 disables every cache on the database path). If **no**, the site isn't talking to Supabase — check Vercel → Settings → Environment Variables (both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, enabled for *Production*), then Deployments → ⋯ → **Redeploy** (env-var changes only apply to new deployments).
+- Vercel → Deployments: the latest one must be *Ready* and built from your last push (its commit message is shown). If it failed, open it and send the error.
 
 ## What changed for the user
 

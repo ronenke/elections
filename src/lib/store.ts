@@ -12,13 +12,23 @@ import { seedState } from "./seed";
  * Local without Supabase env vars: JSON files under .data/ so you can develop and rehearse offline.
  */
 
-const url = process.env.SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const url = process.env.SUPABASE_URL?.trim();
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 const useSupabase = !!(url && key);
+/** On Vercel the filesystem is ephemeral and per-instance: a file fallback would silently lose data. Refuse. */
+const onVercel = !!process.env.VERCEL;
+if (onVercel && !useSupabase) {
+  // eslint-disable-next-line no-console
+  console.error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set — refusing to use file storage on Vercel");
+}
+function assertBackend() {
+  if (onVercel && !useSupabase) throw new StoreError("חסרות הגדרות Supabase בשרת (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY). בדקו ב-Vercel → Settings → Environment Variables ובצעו Redeploy.", 500);
+}
 
 let client: SupabaseClient | null = null;
 function sb() {
-  if (!client) client = createClient(url!, key!, { auth: { persistSession: false } });
+  // Next.js caches fetch() inside route handlers; the database must never be read from that cache.
+  if (!client) client = createClient(url!, key!, { auth: { persistSession: false }, global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }) } });
   return client;
 }
 
@@ -50,6 +60,7 @@ export function storageKind(): "supabase" | "file" {
 
 // ---------------------------------------------------------------- active election
 export async function getActiveId(): Promise<string | null> {
+  assertBackend();
   if (useSupabase) {
     const { data, error } = await sb().from("app_settings").select("value").eq("key", "active_election").maybeSingle();
     if (error) throw new StoreError(`supabase read failed: ${error.message}`, 500);
@@ -88,6 +99,7 @@ export async function getState(): Promise<ElectionState> {
 
 // ---------------------------------------------------------------- CRUD
 export async function listElections(): Promise<ElectionSummary[]> {
+  assertBackend();
   const activeId = await getActiveId();
   if (useSupabase) {
     const { data, error } = await sb().from("elections").select("data").order("created_at", { ascending: false });
@@ -99,6 +111,7 @@ export async function listElections(): Promise<ElectionSummary[]> {
 }
 
 export async function getElection(id: string): Promise<ElectionState | null> {
+  assertBackend();
   if (useSupabase) {
     const { data, error } = await sb().from("elections").select("data").eq("id", id).maybeSingle();
     if (error) throw new StoreError(`supabase read failed: ${error.message}`, 500);
@@ -108,6 +121,7 @@ export async function getElection(id: string): Promise<ElectionState | null> {
 }
 
 async function persist(next: ElectionState, note: string): Promise<void> {
+  assertBackend();
   if (useSupabase) {
     const { error } = await sb().from("elections").upsert({ id: next.id, name: next.election.name, status: next.status, data: next, updated_at: next.updatedAt, created_at: next.createdAt });
     if (error) throw new StoreError(`supabase write failed: ${error.message}`, 500);
@@ -183,4 +197,39 @@ export async function getSnapshot(id: number): Promise<Snapshot | null> {
     return (data as Snapshot) ?? null;
   }
   return (await readDb()).snapshots.find(s => s.id === id) ?? null;
+}
+
+/** Self-test for the diagnostics page: which backend, can we read, can we write, what is active. */
+export async function diagnostics(): Promise<Record<string, unknown>> {
+  const out: Record<string, unknown> = {
+    backend: storageKind(),
+    onVercel,
+    env: { SUPABASE_URL: !!url, SUPABASE_SERVICE_ROLE_KEY: !!key, ADMIN_USERNAME: !!process.env.ADMIN_USERNAME, ADMIN_PASSWORD: !!process.env.ADMIN_PASSWORD, SESSION_SECRET: !!process.env.SESSION_SECRET },
+    supabaseHost: url ? new URL(url).host : null,
+    region: process.env.VERCEL_REGION ?? null,
+    deployment: process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+    time: new Date().toISOString(),
+  };
+  try {
+    out.activeElectionId = await getActiveId();
+    const list = await listElections();
+    out.elections = list.map(e => ({ id: e.id, name: e.name, status: e.status, isActive: e.isActive, version: e.version }));
+  } catch (e) { out.readError = (e as Error).message; }
+  if (useSupabase) {
+    for (const t of ["elections", "snapshots", "app_settings", "election_state"]) {
+      const { error, count } = await sb().from(t).select("*", { count: "exact", head: true });
+      (out as Record<string, unknown>)[`table_${t}`] = error ? `ERROR: ${error.message}` : `ok (${count} rows)`;
+    }
+    // write round-trip on app_settings
+    const probe = `probe-${Date.now()}`;
+    const { error: w } = await sb().from("app_settings").upsert({ key: "diagnostics_probe", value: probe });
+    if (w) out.writeTest = `ERROR: ${w.message}`;
+    else {
+      const { data, error: r } = await sb().from("app_settings").select("value").eq("key", "diagnostics_probe").maybeSingle();
+      out.writeTest = r ? `ERROR: ${r.message}` : data?.value === probe ? "ok (write + read back)" : `MISMATCH: wrote ${probe}, read ${data?.value}`;
+    }
+  } else {
+    try { await fs.mkdir(dataDir, { recursive: true }); await fs.writeFile(path.join(dataDir, ".probe"), "1"); out.writeTest = `ok (file: ${dataDir})`; } catch (e) { out.writeTest = `ERROR: ${(e as Error).message}`; }
+  }
+  return out;
 }
