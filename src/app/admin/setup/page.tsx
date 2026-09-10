@@ -4,6 +4,7 @@ import { useElection } from "@/components/useElection";
 import { Toasts, useToast } from "@/components/Toast";
 import type { ElectionState, Party } from "@/lib/types";
 import { rehearsal2022, seedState } from "@/lib/seed";
+import { ClosedBanner } from "@/components/ClosedBanner";
 
 /** Parties, ballot letters, blocs and surplus agreements. Fill in before election night. */
 export default function SetupPage() {
@@ -16,6 +17,7 @@ export default function SetupPage() {
   if (!draft) return <p className="text-slate-500">{error ?? "טוען…"}</p>;
 
   const dirty = !!(data && JSON.stringify(draft) !== JSON.stringify(data.state));
+  const closed = data?.state.status === "closed";
   const parties = [...draft.parties].sort((a, b) => a.order - b.order);
   const upd = (id: string, patch: Partial<Party>) => setDraft(d => d && { ...d, parties: d.parties.map(p => (p.id === id ? { ...p, ...patch } : p)) });
   const move = (id: string, dir: -1 | 1) => setDraft(d => {
@@ -58,7 +60,8 @@ export default function SetupPage() {
   function loadPreset(kind: "2022" | "2026") {
     if (!confirm(kind === "2022" ? "לטעון את תוצאות 2022 לחזרה גנרלית? הנתונים הנוכחיים יוחלפו (ניתן לשחזר מההיסטוריה)." : "לאפס לרשימות 2026 ההתחלתיות? הקולות יימחקו (ניתן לשחזר מההיסטוריה).")) return;
     const s = kind === "2022" ? rehearsal2022() : seedState();
-    setDraft({ ...s, version: draft!.version });
+    // keep the identity of this election; replace only its content
+    setDraft({ ...s, id: draft!.id, status: draft!.status, createdAt: draft!.createdAt, version: draft!.version });
   }
 
   return (
@@ -70,12 +73,14 @@ export default function SetupPage() {
           <p className="text-sm text-slate-500">למלא לפני ליל הבחירות. אותיות הרשימות והסכמי העודפים — לפי פרסומי ועדת הבחירות המרכזית.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="btn-secondary" onClick={() => loadPreset("2022")}>טעינת חזרה גנרלית (2022)</button>
-          <button className="btn-secondary" onClick={() => loadPreset("2026")}>איפוס לרשימות 2026</button>
-          <button className="btn-primary" onClick={doSave} disabled={!dirty || saving}>{saving ? "שומר…" : "שמירה"}</button>
+          <button className="btn-secondary" onClick={() => loadPreset("2022")} disabled={closed}>טעינת חזרה גנרלית (2022)</button>
+          <button className="btn-secondary" onClick={() => loadPreset("2026")} disabled={closed}>איפוס לרשימות 2026</button>
+          <button className="btn-primary" onClick={doSave} disabled={!dirty || saving || closed}>{saving ? "שומר…" : "שמירה"}</button>
         </div>
       </div>
+      {closed && <ClosedBanner />}
 
+      <fieldset disabled={closed} className="contents">
       <div className="card p-4 grid gap-3 md:grid-cols-3">
         <div><label className="label">שם מערכת הבחירות</label><input className="input" value={draft.election.name} onChange={e => setDraft(d => d && { ...d, election: { ...d.election, name: e.target.value } })} /></div>
         <div><label className="label">תאריך</label><input className="input num" type="date" value={draft.election.date} onChange={e => setDraft(d => d && { ...d, election: { ...d.election, date: e.target.value } })} /></div>
@@ -150,6 +155,7 @@ export default function SetupPage() {
           ))}
         </div>
       </div>
+      </fieldset>
     </div>
   );
 }

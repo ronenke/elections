@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useElection } from "@/components/useElection";
 import { n, pct, clock } from "@/lib/format";
+import { AgreementBadge, DangerDot } from "@/components/Badges";
 
 /**
  * The on-air board: what the presenter reads from. Large, calm, high contrast. Polls every 10 s.
@@ -23,9 +24,10 @@ export default function Board() {
     <main className="min-h-screen bg-[#0b1220] text-white p-6 md:p-10">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">{state.election.name}</h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-3 flex-wrap">{state.election.name}{state.status === "closed" && <span className="text-sm font-bold bg-white text-[#0b1220] rounded-full px-3 py-1">תוצאות סופיות</span>}</h1>
           <p className="text-slate-400 mt-1">
             חלוקת מנדטים לפי שיטת בדר-עופר · {state.countedPercent !== null ? <>נספרו <b className="text-white num">{pct(state.countedPercent, 1)}</b> מהקולות</> : "טרם דווח אחוז ספירה"}
+            {" · "}מנדט = <b className="text-white num">{n(Math.round(computed.result.measure))}</b> קולות
             {" · "}עודכן <span className="num">{clock(state.updatedAt)}</span>
             {state.note && <> · {state.note}</>}
           </p>
@@ -85,7 +87,11 @@ export default function Board() {
                     <span className="text-xl md:text-2xl font-bold leading-tight">{r.name}</span>
                     {r.letters && <span className="text-slate-400 text-lg">{r.letters}</span>}
                   </div>
-                  <div className="text-slate-400 text-sm num mt-0.5">{n(r.votes)} קולות · {pct(r.percent)}</div>
+                  <div className="text-slate-400 text-sm num mt-0.5 flex items-center gap-2 flex-wrap">
+                    <span>{n(r.votes)} קולות · {pct(r.percent)}</span>
+                    <AgreementBadge effect={r.agreementEffect} />
+                    <DangerDot level={r.dangerLevel} toLose={r.toLose} size={10} />
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-5xl font-extrabold num leading-none">{r.seats}</div>

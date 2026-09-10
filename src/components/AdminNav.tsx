@@ -8,6 +8,7 @@ const items = [
   { href: "/admin/setup", label: "רשימות והסכמים" },
   { href: "/admin/audit", label: "פירוט החישוב" },
   { href: "/admin/history", label: "היסטוריה" },
+  { href: "/admin/elections", label: "מערכות בחירות" },
 ];
 
 export function AdminNav() {

@@ -5,6 +5,8 @@ import { Toasts, useToast } from "@/components/Toast";
 import { compute } from "@/lib/compute";
 import type { ElectionState } from "@/lib/types";
 import { n, pct, time, signed } from "@/lib/format";
+import { AgreementBadge, DangerDot } from "@/components/Badges";
+import { ClosedBanner } from "@/components/ClosedBanner";
 
 /**
  * Vote entry — the main working screen on election night.
@@ -21,6 +23,7 @@ export default function VotesPage() {
   const live = useMemo(() => (draft ? compute(draft, true) : null), [draft]);
   const published = data?.computed ?? null;
   const dirty = !!(draft && data && JSON.stringify(draft) !== JSON.stringify(data.state));
+  const closed = data?.state.status === "closed";
 
   if (!draft || !live) return <p className="text-slate-500">{error ?? "טוען…"}</p>;
 
@@ -49,15 +52,16 @@ export default function VotesPage() {
       <Toasts toasts={toasts} remove={remove} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">הזנת קולות</h1>
+          <h1 className="text-2xl font-bold">הזנת קולות <span className="text-slate-400 font-normal text-lg">· {draft.election.name}</span></h1>
           <p className="text-sm text-slate-500">פורסם לאחרונה: <span className="num">{time(data?.state.updatedAt)}</span> · גרסה {data?.state.version} · מקור: {sourceLabel(data?.state.source)}</p>
         </div>
         <div className="flex items-center gap-2">
           {dirty && <span className="badge bg-amber-100 text-amber-800">שינויים שלא נשמרו</span>}
           <button className="btn-secondary" onClick={discard} disabled={!dirty || saving}>ביטול שינויים</button>
-          <button className="btn-primary" onClick={doSave} disabled={!dirty || saving || !live.result.ok}>{saving ? "שומר…" : "שמירה ופרסום"}</button>
+          <button className="btn-primary" onClick={doSave} disabled={!dirty || saving || !live.result.ok || closed}>{saving ? "שומר…" : "שמירה ופרסום"}</button>
         </div>
       </div>
+      {closed && <ClosedBanner />}
 
       {!live.result.ok && live.result.errors.length > 0 && (
         <div className="rounded-2xl bg-red-50 border border-red-200 text-red-800 p-4 text-sm"><b>לא ניתן לשמור:</b> {live.result.errors.join(" · ")}</div>
@@ -68,16 +72,30 @@ export default function VotesPage() {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <div className="card overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+            <div className="text-sm">
+              <span className="text-slate-500">מנדט = </span>
+              <b className="text-lg num">{live.result.totalValidVotes ? n(Math.round(live.result.measure)) : "—"}</b>
+              <span className="text-slate-500"> קולות</span>
+              <span className="text-slate-400 text-xs mr-3">נכון לרגע ההצגה · אחוז חסימה {n(live.result.thresholdVotes)} קולות</span>
+            </div>
+            <div className="text-xs text-slate-500 flex items-center gap-3">
+              <span>סכנת מנדט:</span>
+              {([1, 2, 3, 4, 5] as const).map(l => <span key={l} className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full inline-block" style={{ background: ["#16a34a", "#84cc16", "#eab308", "#f97316", "#dc2626"][l - 1] }} />{["בטוח מאוד", "בטוח", "בינוני", "בסכנה", "סכנה גבוהה"][l - 1]}</span>)}
+            </div>
+          </div>
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-500 text-xs">
               <tr>
                 <th className="text-right px-4 py-3 font-semibold">רשימה</th>
-                <th className="text-right px-2 py-3 font-semibold w-16">אות</th>
-                <th className="text-right px-2 py-3 font-semibold w-44">קולות</th>
+                <th className="text-right px-2 py-3 font-semibold w-14">אות</th>
+                <th className="text-right px-2 py-3 font-semibold w-40">קולות</th>
                 <th className="text-right px-2 py-3 font-semibold w-20">אחוז</th>
                 <th className="text-right px-2 py-3 font-semibold w-24">חסימה</th>
-                <th className="text-center px-2 py-3 font-semibold w-24">מנדטים</th>
-                <th className="text-right px-2 py-3 font-semibold w-40">רגישות</th>
+                <th className="text-center px-2 py-3 font-semibold w-20">מנדטים</th>
+                <th className="text-center px-2 py-3 font-semibold w-20" title="מנדט שהתקבל (+) או אבד (−) בגלל הסכם העודפים, לעומת חישוב ללא ההסכם">הסכם עודפים</th>
+                <th className="text-center px-2 py-3 font-semibold w-24" title="עד כמה המנדט האחרון בטוח, יחסית לשאר הרשימות">סכנת מנדט</th>
+                <th className="text-right px-2 py-3 font-semibold w-36">רגישות</th>
               </tr>
             </thead>
             <tbody>
@@ -102,6 +120,7 @@ export default function VotesPage() {
                         placeholder="0"
                         onChange={e => setVotes(p.id, e.target.value)}
                         onFocus={e => e.target.select()}
+                        disabled={closed}
                       />
                     </td>
                     <td className="px-2 py-2 num text-slate-600">{r.votes ? pct(r.percent) : "—"}</td>
@@ -114,6 +133,8 @@ export default function VotesPage() {
                       <span className="text-2xl font-extrabold num">{r.seats}</span>
                       {delta !== 0 && <span className={`mr-1 text-xs font-bold ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>{signed(delta)}</span>}
                     </td>
+                    <td className="px-2 py-2 text-center"><AgreementBadge effect={r.agreementEffect} /></td>
+                    <td className="px-2 py-2 text-center"><DangerDot level={r.dangerLevel} toLose={r.toLose} /></td>
                     <td className="px-2 py-2 text-xs text-slate-500 num">
                       {r.passed && r.toGain !== null && <div>+{n(r.toGain)} למנדט נוסף</div>}
                       {r.passed && r.toLose !== null && <div>−{n(r.toLose)} לאיבוד מנדט</div>}
@@ -128,7 +149,7 @@ export default function VotesPage() {
                 <td className="px-2 py-2"><input inputMode="numeric" className="input num" value={draft.otherValidVotes ? n(draft.otherValidVotes) : ""} placeholder="0" onChange={e => setDraft(d => d && { ...d, otherValidVotes: parseInt(e.target.value.replace(/[^\d]/g, ""), 10) || 0 })} /></td>
                 <td className="px-2 py-2 text-slate-500 text-xs" colSpan={2}>נספרות לצורך אחוז החסימה בלבד</td>
                 <td className="px-2 py-2 text-center"><span className={`text-2xl font-extrabold num ${live.result.totalSeats === 120 || live.result.totalValidVotes === 0 ? "" : "text-red-600"}`}>{live.result.totalSeats}</span><span className="text-slate-400 text-xs"> /120</span></td>
-                <td />
+                <td colSpan={3} />
               </tr>
             </tfoot>
           </table>

@@ -39,9 +39,9 @@ A note on Google Drive: it works fine as the home of the code, with two habits. 
 1. https://supabase.com/dashboard → *New project*. Name: `elections`. Region: **Frankfurt (eu-central-1)** — closest to Israel. Choose a database password (you won't need it again, but save it in your password manager).
 2. Wait ~1 minute until the project is ready.
 3. Left menu → **SQL Editor** → *New query*. Open the file `supabase/schema.sql` from the code, paste its contents, click **Run**. It should say "Success. No rows returned".
-4. Left menu → **Project Settings → API**. Copy two values into your password manager:
-   - **Project URL** (looks like `https://abcdefgh.supabase.co`)
-   - **service_role** key (under "Project API keys" — click *Reveal*. This key bypasses all security; it lives only in Vercel, never in the code or in a chat).
+4. Copy two values into your password manager:
+   - **Project URL**: `https://<Project ID>.supabase.co` — the Project ID is on *Settings → General* (also shown under *Integrations → Data API*).
+   - **service_role** key: *Settings → API Keys → "Legacy API keys" tab → service_role → Reveal* (or create a new *Secret key* on the other tab — it works the same). This key bypasses all security; it lives only in Vercel, never in the code or in a chat.
 
 ✅ Check: *Table Editor* shows two empty tables, `election_state` and `snapshots`.
 
@@ -65,15 +65,15 @@ A note on Google Drive: it works fine as the home of the code, with two habits. 
 
 ## Step 4 — Point elections.keinan.us at it (5 min + DNS wait)
 
-1. In the Vercel project → **Settings → Domains** → add `elections.keinan.us`.
-2. Vercel shows the record to create. In your DNS provider for keinan.us (where you added `worldcup`), add:
-   `CNAME` · name `elections` · value `cname.vercel-dns.com`
+1. GoDaddy → My Products → keinan.us → **DNS** → *Add new record*: type `CNAME`, name `elections`, data `cname.vercel-dns.com`, TTL 1 hour → Save.
+2. Vercel project → **Domains** (direct link: `vercel.com/ronenkes-projects/elections/settings/domains`) → *Add Domain* → `elections.keinan.us` → Connect to environment: Production → Add. A yellow "DNS Change Recommended" is fine (legacy record keeps working); optionally replace the CNAME value with the one Vercel suggests.
 3. Wait for Vercel to show a green check (usually minutes, up to an hour). HTTPS is automatic.
 
 ✅ Check: https://elections.keinan.us shows the login page.
 
 ## Step 5 — Prepare for election night (10 min, can be done any time before)
 
+0. **מערכות בחירות**: check that the election you will use is marked *פעילה* (create one if needed — name, date, CEC URL). Old elections can be kept closed as archives.
 1. Log in → **רשימות והסכמים**. Fill in the ballot letters from https://www.gov.il/he/pages/candidates-lists-26, fix names, set blocs (colours are yours to choose), and set surplus agreements as they are published by the CEC (deadline is shortly before election day).
 2. Set the CEC results URL once the site exists (expected `https://votes26.bechirot.gov.il/`). Save.
 3. Rehearse: **רשימות והסכמים → טעינת חזרה גנרלית (2022)** loads the 2022 election; the board should show Likud 32, Yesh Atid 24 … Labor 4. Then **איפוס לרשימות 2026** to return. Everything you did is in **היסטוריה** and can be restored.
@@ -85,6 +85,8 @@ A note on Google Drive: it works fine as the home of the code, with two habits. 
 - Or type numbers directly in **הזנת קולות**; mandates update as you type; nothing reaches the board until **שמירה ופרסום**.
 - **פירוט החישוב** shows every step (threshold, measure, each Bader-Ofer round, pair splits) for anyone who wants to verify by hand.
 - If something goes wrong: **היסטוריה** → pick the last good version → **שחזור**.
+- When the results are final: **מערכות בחירות → סגירה (תוצאות סופיות)**. Everything locks and the board shows "תוצאות סופיות". Reopen from the same screen if a correction is needed.
+- Updating the code later: see **UPDATE.md**.
 
 ## Changing the password later
 

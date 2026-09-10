@@ -20,7 +20,14 @@ export interface Agreement {
 
 export type SourceKind = "manual" | "cec-fetch" | "cec-paste" | "restore" | "seed";
 
+export type ElectionStatus = "open" | "closed";
+
 export interface ElectionState {
+  /** unique id of this election (one row in the elections table) */
+  id: string;
+  /** "open" = results can be edited; "closed" = results are final, all editing is locked */
+  status: ElectionStatus;
+  createdAt: string;
   version: number;
   updatedAt: string;
   election: {
@@ -43,7 +50,20 @@ export interface ElectionState {
 
 export interface Snapshot {
   id: number;
+  election_id: string;
   created_at: string;
   note: string;
   data: ElectionState;
+}
+
+/** Row in the elections list (without the full data) */
+export interface ElectionSummary {
+  id: string;
+  name: string;
+  date: string;
+  status: ElectionStatus;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
 }

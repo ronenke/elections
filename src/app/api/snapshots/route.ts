@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { listSnapshots } from "@/lib/store";
+import { getState, listSnapshots } from "@/lib/store";
 export const dynamic = "force-dynamic";
+/** Snapshots of the active election. */
 export async function GET() {
-  return NextResponse.json({ snapshots: await listSnapshots(200) });
+  const state = await getState();
+  return NextResponse.json({ electionId: state.id, snapshots: await listSnapshots(state.id, 300) });
 }

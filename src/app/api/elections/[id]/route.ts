@@ -1,0 +1,33 @@
+import { NextResponse } from "next/server";
+import { deleteElection, getElection, listElections, setActive, setStatus, StoreError } from "@/lib/store";
+export const dynamic = "force-dynamic";
+
+function fail(e: unknown) {
+  const err = e as StoreError;
+  return NextResponse.json({ error: "store", message: err.message }, { status: err.status ?? 500 });
+}
+
+export async function GET(_: Request, { params }: { params: { id: string } }) {
+  const s = await getElection(params.id);
+  if (!s) return NextResponse.json({ error: "not found" }, { status: 404 });
+  return NextResponse.json({ election: s });
+}
+
+/** body: { action: "activate" | "close" | "reopen" } */
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+  const { action } = (await req.json().catch(() => ({}))) as { action?: string };
+  try {
+    if (action === "activate") await setActive(params.id);
+    else if (action === "close") await setStatus(params.id, "closed");
+    else if (action === "reopen") await setStatus(params.id, "open");
+    else return NextResponse.json({ error: "invalid", message: "פעולה לא מוכרת" }, { status: 400 });
+    return NextResponse.json({ elections: await listElections() });
+  } catch (e) { return fail(e); }
+}
+
+export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+  try {
+    await deleteElection(params.id);
+    return NextResponse.json({ elections: await listElections() });
+  } catch (e) { return fail(e); }
+}

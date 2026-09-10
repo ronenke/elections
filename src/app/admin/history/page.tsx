@@ -26,13 +26,13 @@ export default function HistoryPage() {
     setBusy(true);
     const r = await fetch(`/api/snapshots/${id}`, { method: "POST" });
     setBusy(false);
-    if (r.ok) { push("ok", "שוחזר ופורסם"); await reload(); await loadList(); setSel(null); } else push("error", "השחזור נכשל");
+    if (r.ok) { push("ok", "שוחזר ופורסם"); await reload(); await loadList(); setSel(null); } else push("error", (await r.json().catch(() => ({}))).message ?? "השחזור נכשל");
   }
 
   return (
     <div className="space-y-5">
       <Toasts toasts={toasts} remove={remove} />
-      <div><h1 className="text-2xl font-bold">היסטוריית עדכונים</h1><p className="text-sm text-slate-500">כל שמירה נשמרת כגרסה. אפשר לצפות, להשוות למצב הנוכחי ולשחזר.</p></div>
+      <div><h1 className="text-2xl font-bold">היסטוריית עדכונים <span className="text-slate-400 font-normal text-lg">· {data?.state.election.name}</span></h1><p className="text-sm text-slate-500">כל שמירה נשמרת כגרסה. אפשר לצפות, להשוות למצב הנוכחי ולשחזר{data?.state.status === "closed" ? " (המערכת סגורה — שחזור אפשרי רק אחרי פתיחה מחדש)" : ""}.</p></div>
       <div className="grid gap-5 lg:grid-cols-[380px_1fr]">
         <div className="card overflow-hidden max-h-[75vh] overflow-y-auto">
           {list.length === 0 && <p className="p-4 text-sm text-slate-500">אין עדיין גרסאות.</p>}
@@ -48,7 +48,7 @@ export default function HistoryPage() {
             <>
               <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div><b>גרסה #{sel.snapshot.id}</b> · <span className="text-slate-500 text-sm num">{time(sel.snapshot.created_at)}</span> · <span className="text-sm">{sel.snapshot.note}</span></div>
-                <button className="btn-danger" onClick={() => restore(sel.snapshot.id)} disabled={busy}>שחזור גרסה זו</button>
+                <button className="btn-danger" onClick={() => restore(sel.snapshot.id)} disabled={busy || data?.state.status === "closed"}>שחזור גרסה זו</button>
               </div>
               <table className="w-full text-sm">
                 <thead className="text-xs text-slate-500 bg-slate-50"><tr><th className="text-right px-3 py-2">רשימה</th><th className="text-right px-3 py-2">קולות בגרסה</th><th className="text-right px-3 py-2">לעומת עכשיו</th><th className="text-center px-3 py-2">מנדטים בגרסה</th><th className="text-center px-3 py-2">עכשיו</th></tr></thead>

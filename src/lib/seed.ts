@@ -5,6 +5,10 @@ import type { ElectionState } from "./types";
  * Lists closed on 8 Sept 2026. Ballot letters and surplus agreements must be confirmed
  * from https://www.gov.il/he/pages/candidates-lists-26 and the CEC — everything here is editable.
  */
+export function newId(): string {
+  return `e${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
 export function seedState(): ElectionState {
   const blocs = [
     { id: "coalition", name: "גוש הקואליציה", color: "#2563eb" },
@@ -28,6 +32,9 @@ export function seedState(): ElectionState {
   ];
   const parties = names.map(([id, name, blocId], i) => ({ id, name, letters: "", blocId, order: i }));
   return {
+    id: newId(),
+    status: "open",
+    createdAt: new Date().toISOString(),
     version: 1,
     updatedAt: new Date().toISOString(),
     election: { name: "הבחירות לכנסת ה-26", date: "2026-10-27", cecUrl: "https://votes26.bechirot.gov.il/" },
@@ -61,6 +68,9 @@ export function rehearsal2022(): ElectionState {
   ];
   const listed = rows.reduce((s, r) => s + r[3], 0);
   return {
+    id: newId(),
+    status: "open",
+    createdAt: new Date().toISOString(),
     version: 1,
     updatedAt: new Date().toISOString(),
     election: { name: "חזרה גנרלית — הבחירות לכנסת ה-25 (2022)", date: "2022-11-01", cecUrl: "https://votes25.bechirot.gov.il/" },
@@ -75,6 +85,29 @@ export function rehearsal2022(): ElectionState {
     otherValidVotes: 4764742 - listed,
     countedPercent: 100,
     note: "תוצאות סופיות 2022 — לבדיקה בלבד",
+    source: "seed",
+  };
+}
+
+/** A blank election: no lists, default blocs. */
+export function blankState(name: string): ElectionState {
+  return {
+    id: newId(),
+    status: "open",
+    createdAt: new Date().toISOString(),
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    election: { name, date: "", cecUrl: "" },
+    parties: [],
+    blocs: [
+      { id: "coalition", name: "גוש א", color: "#2563eb" },
+      { id: "opposition", name: "גוש ב", color: "#f59e0b" },
+    ],
+    agreements: [],
+    votes: {},
+    otherValidVotes: 0,
+    countedPercent: null,
+    note: "",
     source: "seed",
   };
 }

@@ -4,6 +4,7 @@ import { useElection } from "@/components/useElection";
 import { Toasts, useToast } from "@/components/Toast";
 import { compute } from "@/lib/compute";
 import { n, pct, signed } from "@/lib/format";
+import { ClosedBanner } from "@/components/ClosedBanner";
 
 interface ReviewRow { letters: string; name: string; votes: number; percent: number | null; partyId: string | null }
 interface Parsed { rows: ReviewRow[]; countedPercent: number | null; totalValidVotes: number | null; warnings: string[]; fetchedAt?: string; url?: string }
@@ -65,15 +66,17 @@ export default function ImportPage() {
 
   if (!data) return <p className="text-slate-500">{error ?? "טוען…"}</p>;
   const parties = [...data.state.parties].sort((a, b) => a.order - b.order);
+  const closed = data.state.status === "closed";
 
   return (
     <div className="space-y-5">
       <Toasts toasts={toasts} remove={remove} />
       <div>
         <h1 className="text-2xl font-bold">ייבוא תוצאות מוועדת הבחירות המרכזית</h1>
-        <p className="text-sm text-slate-500">לוועדה אין API רשמי. המערכת קוראת את טבלת התוצאות הארצית מדף התוצאות, או מטקסט שהעתקתם ממנו. שום דבר לא נשמר עד שתלחצו <b>אישור וייבוא</b>.</p>
+        <p className="text-sm text-slate-500">מערכת: <b>{data.state.election.name}</b>. לוועדה אין API רשמי. המערכת קוראת את טבלת התוצאות הארצית מדף התוצאות, או מטקסט שהעתקתם ממנו. שום דבר לא נשמר עד שתלחצו <b>אישור וייבוא</b>.</p>
       </div>
 
+      {closed && <ClosedBanner />}
       <div className="card p-4">
         <div className="flex gap-2 mb-4">
           <button className={mode === "fetch" ? "btn-primary" : "btn-secondary"} onClick={() => setMode("fetch")}>משיכה מהאתר</button>
@@ -107,7 +110,7 @@ export default function ImportPage() {
             <div className="flex items-center gap-2">
               <span className={`badge ${preview.computed.result.totalSeats === 120 ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"}`}>{preview.computed.result.totalSeats} / 120 מנדטים</span>
               <button className="btn-secondary" onClick={() => setParsed(null)}>ביטול</button>
-              <button className="btn-primary" onClick={doApply} disabled={busy !== null || !preview.computed.result.ok || parsed.rows.filter(r => r.partyId).length === 0}>{busy === "apply" ? "מייבא…" : "אישור וייבוא"}</button>
+              <button className="btn-primary" onClick={doApply} disabled={busy !== null || closed || !preview.computed.result.ok || parsed.rows.filter(r => r.partyId).length === 0}>{busy === "apply" ? "מייבא…" : "אישור וייבוא"}</button>
             </div>
           </div>
           {parsed.warnings.length > 0 && <div className="px-4 py-2 bg-amber-50 text-amber-800 text-sm border-b border-amber-100">{parsed.warnings.join(" · ")}</div>}
