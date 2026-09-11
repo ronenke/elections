@@ -34,7 +34,7 @@ export default function HistoryPage() {
       <Toasts toasts={toasts} remove={remove} />
       <div><h1 className="text-2xl font-bold">היסטוריית עדכונים <span className="text-slate-400 font-normal text-lg">· {data?.state.election.name}</span></h1><p className="text-sm text-slate-500">כל שמירה נשמרת כגרסה. אפשר לצפות, להשוות למצב הנוכחי ולשחזר{data?.state.status === "closed" ? " (המערכת סגורה — שחזור אפשרי רק אחרי פתיחה מחדש)" : ""}.</p></div>
       <div className="grid gap-5 lg:grid-cols-[380px_1fr]">
-        <div className="card overflow-hidden max-h-[75vh] overflow-y-auto">
+        <div className="card overflow-hidden max-h-[40vh] lg:max-h-[75vh] overflow-y-auto">
           {list.length === 0 && <p className="p-4 text-sm text-slate-500">אין עדיין גרסאות.</p>}
           {list.map(s => (
             <button key={s.id} onClick={() => view(s.id)} className={`w-full text-right px-4 py-3 border-b border-slate-100 hover:bg-slate-50 ${sel?.snapshot.id === s.id ? "bg-blue-50" : ""}`}>
@@ -50,7 +50,8 @@ export default function HistoryPage() {
                 <div><b>גרסה #{sel.snapshot.id}</b> · <span className="text-slate-500 text-sm num">{time(sel.snapshot.created_at)}</span> · <span className="text-sm">{sel.snapshot.note}</span></div>
                 <button className="btn-danger" onClick={() => restore(sel.snapshot.id)} disabled={busy || data?.state.status === "closed"}>שחזור גרסה זו</button>
               </div>
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto -mx-4 px-4">
+              <table className="w-full text-sm min-w-[520px]">
                 <thead className="text-xs text-slate-500 bg-slate-50"><tr><th className="text-right px-3 py-2">רשימה</th><th className="text-right px-3 py-2">קולות בגרסה</th><th className="text-right px-3 py-2">לעומת עכשיו</th><th className="text-center px-3 py-2">מנדטים בגרסה</th><th className="text-center px-3 py-2">עכשיו</th></tr></thead>
                 <tbody>
                   {sel.computed.rows.map(r => {
@@ -67,6 +68,7 @@ export default function HistoryPage() {
                   })}
                 </tbody>
               </table>
+              </div>
             </>
           )}
         </div>

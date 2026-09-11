@@ -6,6 +6,7 @@ import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import type { ElectionState, Party } from "@/lib/types";
 import { parseSetupText, applySetupPaste, type PasteParse } from "@/lib/setupPaste";
 import { ClosedBanner } from "@/components/ClosedBanner";
+import { MobileActionBar } from "@/components/MobileActionBar";
 
 /** Parties, ballot letters, blocs and surplus agreements. Fill in before election night. */
 export default function SetupPage() {
@@ -80,18 +81,22 @@ export default function SetupPage() {
           <h1 className="text-2xl font-bold">רשימות, הסכמי עודפים וגושים</h1>
           <p className="text-sm text-slate-500">למלא לפני ליל הבחירות. אותיות הרשימות והסכמי העודפים — לפי פרסומי ועדת הבחירות המרכזית.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button className="btn-secondary" onClick={() => setPasteOpen(o => !o)} disabled={closed}>טעינת רשימות מהדבקה</button>
-          <button className="btn-primary" onClick={doSave} disabled={!dirty || saving || closed}>{saving ? "שומר…" : "שמירה"}</button>
+          <button className="btn-primary hidden md:inline-flex" onClick={doSave} disabled={!dirty || saving || closed}>{saving ? "שומר…" : "שמירה"}</button>
         </div>
       </div>
+      <MobileActionBar show={!closed}>
+        <span className={`text-xs ${dirty ? "text-amber-700 font-semibold" : "text-slate-400"}`}>{dirty ? "שינויים שלא נשמרו" : "אין שינויים"}</span>
+        <button className="btn-primary mr-auto" onClick={doSave} disabled={!dirty || saving}>{saving ? "שומר…" : "שמירה"}</button>
+      </MobileActionBar>
       {closed && <ClosedBanner />}
 
       {pasteOpen && !closed && (
         <div className="card p-4 space-y-3 border-blue-300 ring-2 ring-blue-100">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-bold">טעינת רשימות מהדבקה</h2>
-            <div className="flex items-center gap-3 text-sm">
+            <div className="flex flex-wrap items-center gap-3 text-sm">
               <label className="inline-flex items-center gap-1.5"><input type="radio" name="pmode" checked={pasteMode === "merge"} onChange={() => setPasteMode("merge")} /> עדכון הרשימה הקיימת</label>
               <label className="inline-flex items-center gap-1.5"><input type="radio" name="pmode" checked={pasteMode === "replace"} onChange={() => setPasteMode("replace")} /> החלפה מלאה</label>
             </div>
@@ -104,7 +109,7 @@ export default function SetupPage() {
               : " במצב החלפה: כל הרשימות, הגושים וההסכמים נבנים מחדש מההדבקה, והקולות מאופסים."}
           </p>
           <textarea className="input h-40" value={pasteText} onChange={e => { setPasteText(e.target.value); setParsed(null); }} placeholder={"שם המפלגה | אות | גוש | שותפה להסכם עודפים\nהליכוד | מחל | ימין | הציונות הדתית\nהציונות הדתית | ט | ימין |\nיש עתיד | פה | מרכז-שמאל |"} />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button className="btn-secondary" onClick={analyze} disabled={!pasteText.trim()}>ניתוח הטקסט</button>
             {parsed && parsed.errors.length === 0 && <button className="btn-primary" onClick={applyPaste}>{pasteMode === "replace" ? "החלפת הרשימות" : "עדכון הרשימות"} ({parsed.rows.length})</button>}
             <button className="text-sm text-slate-500 hover:text-slate-800 mr-auto" onClick={() => { setPasteOpen(false); setParsed(null); }}>סגירה</button>
@@ -114,13 +119,13 @@ export default function SetupPage() {
               {parsed.errors.length > 0 && <div className="rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm p-3 space-y-0.5">{parsed.errors.map((e, i) => <div key={i}>✖ {e}</div>)}</div>}
               {parsed.warnings.length > 0 && <div className="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm p-3 space-y-0.5">{parsed.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}</div>}
               {parsed.rows.length > 0 && (
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto -mx-4 px-4"><table className="w-full text-sm min-w-[560px]">
                   <thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="text-right px-3 py-1.5">שם</th><th className="text-right px-3 py-1.5">אות</th><th className="text-right px-3 py-1.5">גוש</th><th className="text-right px-3 py-1.5">הסכם עודפים עם</th><th className="text-right px-3 py-1.5">מצב</th></tr></thead>
                   <tbody>{parsed.rows.map((r, i) => {
                     const exists = draft.parties.some(p => (r.letters && p.letters === r.letters) || p.name.trim() === r.name.trim());
                     return <tr key={i} className="border-t border-slate-100"><td className="px-3 py-1 font-semibold">{r.name}</td><td className="px-3 py-1">{r.letters || "—"}</td><td className="px-3 py-1">{r.bloc || "—"}</td><td className="px-3 py-1">{r.partner || "—"}</td><td className="px-3 py-1 text-xs">{pasteMode === "replace" ? <span className="badge bg-slate-100 text-slate-600">חדש</span> : exists ? <span className="badge bg-blue-100 text-blue-800">עדכון</span> : <span className="badge bg-emerald-100 text-emerald-800">תוספת</span>}</td></tr>;
                   })}</tbody>
-                </table>
+                </table></div>
               )}
             </div>
           )}
@@ -139,7 +144,45 @@ export default function SetupPage() {
           <h2 className="font-bold">רשימות ({parties.length})</h2>
           <button className="btn-secondary" onClick={addParty}>+ הוספת רשימה</button>
         </div>
-        <table className="w-full text-sm">
+        <div className="md:hidden divide-y divide-slate-100" data-mobile-cards>
+          {parties.map((p, i) => {
+            const ag = partnerOf(p.id);
+            const partner = ag ? (ag.a === p.id ? ag.b : ag.a) : "";
+            const taken = new Set(draft.agreements.flatMap(a => [a.a, a.b]).filter(x => x !== p.id && x !== partner));
+            return (
+              <div key={p.id} className="p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 w-5 text-center num">{i + 1}</span>
+                  <input className="input font-semibold flex-1" aria-label="שם הרשימה" value={p.name} onChange={e => upd(p.id, { name: e.target.value })} />
+                  <input className="input text-center w-16 shrink-0" aria-label="אותיות" placeholder="אות" value={p.letters} maxLength={4} onChange={e => upd(p.id, { letters: e.target.value.trim() })} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="label">גוש</label>
+                    <select className="input" value={p.blocId ?? ""} onChange={e => upd(p.id, { blocId: e.target.value || null })}>
+                      <option value="">— ללא גוש —</option>
+                      {draft.blocs.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">הסכם עודפים עם</label>
+                    <select className="input" value={partner} onChange={e => setPartner(p.id, e.target.value)}>
+                      <option value="">— אין הסכם —</option>
+                      {parties.filter(q => q.id !== p.id && !taken.has(q.id)).map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-400">
+                  <button className="px-2 py-1 rounded-lg hover:bg-slate-100 disabled:opacity-30" onClick={() => move(p.id, -1)} disabled={i === 0} title="למעלה">▲ למעלה</button>
+                  <button className="px-2 py-1 rounded-lg hover:bg-slate-100 disabled:opacity-30" onClick={() => move(p.id, 1)} disabled={i === parties.length - 1} title="למטה">▼ למטה</button>
+                  <button className="text-red-500 hover:text-red-700 text-xs mr-auto" onClick={() => removeParty(p.id)}>הסרה</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-sm min-w-[760px]">
           <thead className="bg-slate-50 text-slate-500 text-xs">
             <tr>
               <th className="px-3 py-2 w-16" />
@@ -181,6 +224,7 @@ export default function SetupPage() {
             })}
           </tbody>
         </table>
+        </div>
         <p className="px-4 py-3 text-xs text-slate-500 border-t border-slate-100">
           הסכם עודפים נחשב רק אם שתי הרשימות עוברות את אחוז החסימה; כל רשימה יכולה להיות בהסכם אחד בלבד. {draft.agreements.length} הסכמים מוגדרים.
         </p>
@@ -193,9 +237,9 @@ export default function SetupPage() {
         </div>
         <div className="p-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {draft.blocs.map(b => (
-            <div key={b.id} className="flex items-center gap-2 rounded-xl border border-slate-200 p-2">
+            <div key={b.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 p-2">
               <input type="color" value={b.color} onChange={e => updBloc(b.id, { color: e.target.value })} className="h-9 w-9 rounded-lg border-0 bg-transparent cursor-pointer" />
-              <input className="input" value={b.name} onChange={e => updBloc(b.id, { name: e.target.value })} />
+              <input className="input flex-1 min-w-[140px]" value={b.name} onChange={e => updBloc(b.id, { name: e.target.value })} />
               <span className="text-xs text-slate-500 whitespace-nowrap">{parties.filter(p => p.blocId === b.id).length} רשימות</span>
               <button className="text-red-500 hover:text-red-700 text-xs" onClick={() => removeBloc(b.id)}>הסרה</button>
             </div>

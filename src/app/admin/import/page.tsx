@@ -89,7 +89,7 @@ export default function ImportPage() {
         {mode === "fetch" ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm text-slate-600">כתובת:</span>
-            <code className="text-sm bg-slate-100 rounded-lg px-2 py-1" dir="ltr">{data.state.election.cecUrl || "(לא הוגדרה — ראו 'רשימות והסכמים')"}</code>
+            <code className="text-sm bg-slate-100 rounded-lg px-2 py-1 break-all" dir="ltr">{data.state.election.cecUrl || "(לא הוגדרה — ראו 'רשימות והסכמים')"}</code>
             <button className="btn-primary" onClick={doFetch} disabled={busy !== null || !data.state.election.cecUrl}>{busy === "fetch" ? "מושך…" : "משיכת תוצאות עכשיו"}</button>
             <span className="text-xs text-slate-500">אם האתר חוסם או עמוס — השתמשו בהדבקה.</span>
           </div>
@@ -112,7 +112,7 @@ export default function ImportPage() {
               {parsed.fetchedAt && <> · נמשך {new Date(parsed.fetchedAt).toLocaleTimeString("he-IL")}</>}
               {" · "}<span className={parsed.method === "header" ? "text-emerald-700" : "text-amber-700"}>{parsed.method === "header" ? "עמודות זוהו לפי כותרות" : "עמודות זוהו לפי ניחוש"}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className={`badge ${preview.computed.result.totalSeats === 120 ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"}`}>{preview.computed.result.totalSeats} / 120 מנדטים</span>
               <button className="btn-secondary" onClick={() => setParsed(null)}>ביטול</button>
               <button className="btn-primary" onClick={doApply} disabled={busy !== null || closed || parsed.errors.length > 0 || !preview.computed.result.ok || parsed.rows.filter(r => r.partyId).length === 0}>{busy === "apply" ? "מייבא…" : "אישור וייבוא"}</button>
@@ -131,7 +131,8 @@ export default function ImportPage() {
               ? <div className="px-4 py-2 bg-emerald-50 text-emerald-800 text-sm border-b border-emerald-100">✅ ועדת הבחירות פרסמה מנדטים ל-{preview.cecSeats} רשימות — החישוב שלנו זהה בכולן.</div>
               : <div className="px-4 py-3 bg-red-50 text-red-800 text-sm border-b border-red-200"><b>✖ אי-התאמה במנדטים מול פרסום ועדת הבחירות:</b> {preview.seatMismatches.map(r => `${r.name} (ועדה ${r.seats}, אצלנו ${preview.computed.rows.find(x => x.id === r.partyId)?.seats ?? 0})`).join(", ")}. בדקו הסכמי עודפים ורשימות חסרות לפני האישור.</div>
           )}
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[820px]">
             <thead className="bg-slate-50 text-slate-500 text-xs">
               <tr>
                 <th className="text-right px-4 py-2 font-semibold">כפי שפורסם</th>
@@ -172,6 +173,7 @@ export default function ImportPage() {
               </td></tr>
             </tfoot>
           </table>
+          </div>
         </div>
       )}
     </div>

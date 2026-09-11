@@ -14,7 +14,7 @@ export default function AuditPage() {
     <div className="space-y-5">
       <div><h1 className="text-2xl font-bold">פירוט החישוב (בדר-עופר)</h1><p className="text-sm text-slate-500">כל שלב בחישוב, כדי שאפשר יהיה לאמת ידנית. מבוסס על המצב שפורסם (גרסה {data.state.version}).</p></div>
 
-      <div className="grid gap-3 md:grid-cols-5 text-sm">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-5 text-sm">
         <Stat k="קולות כשרים" v={n(result.totalValidVotes)} />
         <Stat k="אחוז חסימה (3.25%)" v={`${n(result.thresholdVotes)} קולות`} />
         <Stat k="קולות הרשימות שעברו" v={n(result.qualifyingVotes)} />
@@ -24,7 +24,8 @@ export default function AuditPage() {
 
       <section className="card overflow-hidden">
         <h2 className="font-bold px-4 py-3 border-b border-slate-100">שלב 1 — אחוז חסימה וחלוקה ראשונית (INT של קולות ÷ מודד)</h2>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[760px]">
           <thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="text-right px-4 py-2">רשימה</th><th className="text-right px-2 py-2">קולות</th><th className="text-right px-2 py-2">אחוז</th><th className="text-right px-2 py-2">חסימה</th><th className="text-right px-2 py-2">יחידת חישוב (הסכם עודפים)</th><th className="text-center px-2 py-2">מנדטים בשלב הראשון</th><th className="text-center px-2 py-2">סופי</th></tr></thead>
           <tbody>
             {result.lists.map(l => (
@@ -40,6 +41,7 @@ export default function AuditPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </section>
 
       <section className="card overflow-hidden">
@@ -70,7 +72,8 @@ export default function AuditPage() {
       {result.pairSplits.length > 0 && (
         <section className="card overflow-hidden">
           <h2 className="font-bold px-4 py-3 border-b border-slate-100">שלב 3 — חלוקת המנדטים בתוך הסכמי העודפים (מודד הזוג = קולות הזוג ÷ מנדטי הזוג)</h2>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
             <thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="text-right px-4 py-2">זוג</th><th className="text-right px-2 py-2">רשימה</th><th className="text-right px-2 py-2">קולות</th><th className="text-center px-2 py-2">INT(קולות ÷ מודד הזוג)</th><th className="text-right px-2 py-2">קולות ÷ (מנדטים+1)</th><th className="text-center px-2 py-2">סופי</th></tr></thead>
             <tbody>
               {result.pairSplits.map(ps => ps.members.map((m, i) => (
@@ -85,6 +88,7 @@ export default function AuditPage() {
               )))}
             </tbody>
           </table>
+          </div>
         </section>
       )}
 

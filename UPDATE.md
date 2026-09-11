@@ -1,36 +1,26 @@
-# Deploying version 2.4
+# Updating the site
 
-Three steps, in this order. Nothing on the live site changes until step 3, and step 1 does not affect the running version 1.
+## Routine update (every new version): copy, commit, push — 3 minutes
 
-## 1. Database migration (Supabase, 2 min)
+1. Unzip `elections.zip` and copy its contents **over** the existing files in
+   ```
+   /Users/ronenke/Library/CloudStorage/GoogleDrive-ronenke@gmail.com/My Drive/Stuff/Sharon/Elections/Elections 2026/System
+   ```
+   (replace when asked; nothing needs deleting).
+2. In Terminal:
+   ```bash
+   cd "/Users/ronenke/Library/CloudStorage/GoogleDrive-ronenke@gmail.com/My Drive/Stuff/Sharon/Elections/Elections 2026/System"
+   git add -A
+   git commit -m "update"
+   git push
+   ```
+3. Vercel builds for ~1–2 minutes (Deployments tab). Then open https://elections.keinan.us/admin/status — it should be green.
 
-Supabase dashboard → project `elections` → **SQL Editor** → *New query* → open the file `supabase/migration-002.sql` from the code, paste all of it, **Run**.
-Expected: "Success. No rows returned" (a few "already exists, skipping" notices are fine if you run it twice).
+That is all a normal version needs. **Database changes are the exception**, and when a version needs one this file will say so at the top of its entry, with a new numbered file under `supabase/` (`migration-003.sql`, …) to run once in the Supabase SQL editor *before* pushing.
 
-✅ Check: *Table Editor* now shows `elections` (1 row — your current election, renamed id `e-migrated-v1`), `app_settings` (1 row, `active_election`), and `snapshots` has a filled `election_id` column. The old `election_state` table stays as a backup; you can drop it later.
+## One-time migration (already done — do not repeat)
 
-## 2. Replace the code in your folder (2 min)
-
-Unzip `elections.zip` and copy its contents **over** the existing files in
-
-```
-/Users/ronenke/Library/CloudStorage/GoogleDrive-ronenke@gmail.com/My Drive/Stuff/Sharon/Elections/Elections 2026/System
-```
-
-(replace when asked). No files need deleting — this version only adds and updates files.
-
-## 3. Push → Vercel deploys automatically (2 min)
-
-```bash
-cd "/Users/ronenke/Library/CloudStorage/GoogleDrive-ronenke@gmail.com/My Drive/Stuff/Sharon/Elections/Elections 2026/System"
-git add -A
-git commit -m "v2: multiple elections, close/reopen, agreement effect + mandate danger columns"
-git push
-```
-
-Vercel builds for ~1–2 minutes (Deployments tab shows progress).
-
-✅ Check: open https://elections.keinan.us/admin/elections — you should see your election marked **פעילה · פתוחה**. Open **הזנת קולות**: the line "מנדט = … קולות" appears above the table with the two new columns.
+`supabase/migration-002.sql` converted the v1 database (single election) to the v2 layout. You ran it when moving to v2. It is safe to run again (it skips what exists and never deletes your data), but there is no reason to. Versions 2.1, 2.2, 2.3, 2.4 and 2.5 need no database change.
 
 ## If something looks wrong after deploying
 
@@ -55,6 +45,13 @@ Two quick checks that pinpoint the cause of "changes don't stick":
   - **Second user for viewing only.** Log in as `user` to get the on-air board and nothing else (no ניהול link, all admin pages and write APIs refused). By default `user`'s password is the same as the admin password. To give the viewer a different password, or a different name, add in Vercel → Settings → Environment Variables: `VIEWER_USERNAME` and/or `VIEWER_PASSWORD`, then *Redeploy*. The board now has a **יציאה** button (top-right, next to the live indicator); the ניהול link shows only for the admin.
   - **ניהול / לוח שידור** links open in the same tab.
   - **רשימות והסכמים**: the "חזרה גנרלית 2022" and "איפוס 2026" buttons are gone (a 2022 rehearsal is still available as a template when creating an election on the מערכות בחירות screen). Instead, **טעינת רשימות מהדבקה**: paste one line per list — `שם המפלגה | אות | גוש | מפלגה שותפה להסכם עודפים` (separator `|` or tab; bloc and partner optional; an optional header line). *עדכון הרשימה הקיימת* matches existing lists by letters, then by name, updates them, adds new ones, keeps the others and keeps all votes; *החלפה מלאה* rebuilds lists, blocs and agreements from the paste and resets votes. Blocs that don't exist are created. The partner can be given by name or letters and on either line; contradictions, unknown partners, duplicates and a list in two agreements are reported and block the apply. Nothing is saved until you press שמירה.
+
+- **v2.5 — phones**: every screen now works on a phone, for both `admin` and `user`.
+  - Admin header: on a small screen the menu becomes a **☰ button** (it shows the name of the current screen); tap it to switch between הזנת קולות, ייבוא, רשימות, פירוט, היסטוריה, מערכות בחירות and מצב.
+  - **הזנת קולות** on a phone shows one card per list (name, letters, big vote field with a numeric keyboard, mandates, threshold status, the agreement and danger indicators, and the sensitivity numbers), and a **bar pinned to the bottom** with ביטול / שמירה ופרסום so saving never needs scrolling. The same for **רשימות והסכמים** (name, letters, bloc and agreement per list, arrows to reorder). On tablets and desktops the tables are unchanged.
+  - Review tables (import, history, calculation detail) scroll sideways inside their card on narrow screens; the page itself never scrolls sideways.
+  - **לוח שידור** already fitted a phone; spacing and type sizes were tightened for small screens.
+  - Fixed on the way: a styling precedence issue (utility classes such as widths and paddings were sometimes overridden by the shared button/input styles) and, in the local file backend only, two simultaneous requests could overwrite each other's write.
 
 ## Rollback (if ever needed)
 

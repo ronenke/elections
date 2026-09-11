@@ -48,6 +48,14 @@ async function writeDb(db: FileDb) {
   await fs.mkdir(dataDir, { recursive: true });
   await fs.writeFile(dbFile, JSON.stringify(db, null, 2));
 }
+// The file backend (local development only) is a read-modify-write of one JSON file; serialise those so two
+// concurrent requests cannot overwrite each other's change. Supabase does row-level writes and needs none of this.
+let fileChain: Promise<unknown> = Promise.resolve();
+function updateDb(mutate: (db: FileDb) => void): Promise<void> {
+  const run = fileChain.then(async () => { const db = await readDb(); mutate(db); await writeDb(db); });
+  fileChain = run.catch(() => undefined);
+  return run;
+}
 
 // ---------------------------------------------------------------- helpers
 function summary(s: ElectionState, isActive: boolean): ElectionSummary {
@@ -77,9 +85,7 @@ export async function setActive(id: string): Promise<void> {
     if (error) throw new StoreError(error.message, 500);
     return;
   }
-  const db = await readDb();
-  db.activeId = id;
-  await writeDb(db);
+  await updateDb(db => { db.activeId = id; });
 }
 
 /** The active election; creates a seeded one on a brand-new install. */
@@ -129,11 +135,11 @@ async function persist(next: ElectionState, note: string): Promise<void> {
     if (e2) throw new StoreError(`supabase snapshot failed: ${e2.message}`, 500);
     return;
   }
-  const db = await readDb();
-  db.elections[next.id] = next;
-  db.snapshots.unshift({ id: (db.snapshots[0]?.id ?? 0) + 1, election_id: next.id, created_at: next.updatedAt, note, data: next });
-  db.snapshots = db.snapshots.slice(0, 2000);
-  await writeDb(db);
+  await updateDb(db => {
+    db.elections[next.id] = next;
+    db.snapshots.unshift({ id: (db.snapshots[0]?.id ?? 0) + 1, election_id: next.id, created_at: next.updatedAt, note, data: next });
+    db.snapshots = db.snapshots.slice(0, 2000);
+  });
 }
 
 export async function createElection(state: ElectionState, note = "יצירת מערכת בחירות"): Promise<ElectionState> {
@@ -180,10 +186,10 @@ export async function deleteElection(id: string): Promise<void> {
     if (e2) throw new StoreError(e2.message, 500);
     return;
   }
-  const db = await readDb();
-  delete db.elections[id];
-  db.snapshots = db.snapshots.filter(s => s.election_id !== id);
-  await writeDb(db);
+  await updateDb(db => {
+    delete db.elections[id];
+    db.snapshots = db.snapshots.filter(s => s.election_id !== id);
+  });
 }
 
 // ---------------------------------------------------------------- snapshots

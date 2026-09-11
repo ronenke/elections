@@ -91,7 +91,7 @@ export default function ElectionsPage() {
               </div>
               <div className="text-xs text-slate-500 mt-1 num">{el.date && <>תאריך {el.date} · </>}עודכן {time(el.updatedAt)} · גרסה {el.version}</div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button className="btn-secondary" disabled={busy !== null} onClick={() => startEdit(el)}>עריכת פרטים</button>
               {!el.isActive && <button className="btn-secondary" disabled={busy !== null} onClick={() => activate(el.id)}>הפעלה</button>}
               {el.status === "open"
@@ -111,7 +111,7 @@ export default function ElectionsPage() {
             <div><label className="label">תאריך</label><input className="input num" type="date" value={edit.date} onChange={e => setEdit({ ...edit, date: e.target.value })} /></div>
             <div><label className="label">כתובת דף התוצאות של ועדת הבחירות</label><input className="input num" dir="ltr" value={edit.cecUrl} onChange={e => setEdit({ ...edit, cecUrl: e.target.value })} placeholder="https://votes26.bechirot.gov.il/" /></div>
           </div>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-slate-500">ניתן לערוך גם מערכת סגורה — אלה פרטים, לא תוצאות.</p>
             <div className="flex gap-2"><button type="button" className="btn-secondary" onClick={() => setEdit(null)}>ביטול</button><button className="btn-primary" disabled={busy !== null || !edit.name.trim()}>שמירה</button></div>
           </div>

@@ -8,6 +8,7 @@ import type { ElectionState } from "@/lib/types";
 import { n, pct, time, signed } from "@/lib/format";
 import { AgreementBadge, DangerDot } from "@/components/Badges";
 import { ClosedBanner } from "@/components/ClosedBanner";
+import { MobileActionBar } from "@/components/MobileActionBar";
 
 /**
  * Vote entry — the main working screen on election night.
@@ -57,12 +58,17 @@ export default function VotesPage() {
           <h1 className="text-2xl font-bold">הזנת קולות <span className="text-slate-400 font-normal text-lg">· {draft.election.name}</span></h1>
           <p className="text-sm text-slate-500">פורסם לאחרונה: <span className="num">{time(data?.state.updatedAt)}</span> · גרסה {data?.state.version} · מקור: {sourceLabel(data?.state.source)}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2">
           {dirty && <span className="badge bg-amber-100 text-amber-800">שינויים שלא נשמרו</span>}
           <button className="btn-secondary" onClick={discard} disabled={!dirty || saving}>ביטול שינויים</button>
           <button className="btn-primary" onClick={doSave} disabled={!dirty || saving || !live.result.ok || closed}>{saving ? "שומר…" : "שמירה ופרסום"}</button>
         </div>
       </div>
+      <MobileActionBar show={!closed}>
+        <span className={`text-xs ${dirty ? "text-amber-700 font-semibold" : "text-slate-400"} whitespace-nowrap`}>{dirty ? "שינויים שלא נשמרו" : "אין שינויים"}</span>
+        <button className="btn-secondary mr-auto" onClick={discard} disabled={!dirty || saving}>ביטול</button>
+        <button className="btn-primary" onClick={doSave} disabled={!dirty || saving || !live.result.ok}>{saving ? "שומר…" : "שמירה ופרסום"}</button>
+      </MobileActionBar>
       {closed && <ClosedBanner />}
 
       {!live.result.ok && live.result.errors.length > 0 && (
@@ -79,14 +85,76 @@ export default function VotesPage() {
               <span className="text-slate-500">מנדט = </span>
               <b className="text-lg num">{live.result.totalValidVotes ? n(Math.round(live.result.measure)) : "—"}</b>
               <span className="text-slate-500"> קולות</span>
-              <span className="text-slate-400 text-xs mr-3">נכון לרגע ההצגה · אחוז חסימה {n(live.result.thresholdVotes)} קולות</span>
+              <span className="text-slate-400 text-xs mr-3 block sm:inline">נכון לרגע ההצגה · אחוז חסימה {n(live.result.thresholdVotes)} קולות</span>
             </div>
-            <div className="text-xs text-slate-500 flex items-center gap-3">
+            <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1">
               <span>סכנת מנדט:</span>
               {([1, 2, 3, 4, 5] as const).map(l => <span key={l} className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full inline-block" style={{ background: ["#16a34a", "#84cc16", "#eab308", "#f97316", "#dc2626"][l - 1] }} />{["בטוח מאוד", "בטוח", "בינוני", "בסכנה", "סכנה גבוהה"][l - 1]}</span>)}
             </div>
           </div>
-          <table className="w-full text-sm">
+          {/* phones: one card per list */}
+          <div className="md:hidden divide-y divide-slate-100" data-mobile-cards>
+            {parties.map(p => {
+              const r = rowOf(p.id);
+              const delta = r.seats - pubSeats(p.id);
+              const bloc = draft.blocs.find(b => b.id === p.blocId);
+              return (
+                <div key={p.id} className="p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-7 w-1 rounded-full shrink-0" style={{ background: bloc?.color ?? "#cbd5e1" }} />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold truncate">{p.name}</div>
+                      <div className="text-xs text-slate-500">{p.letters || "—"}{r.votes ? <> · <span className="num">{pct(r.percent)}</span></> : null}</div>
+                    </div>
+                    <div className="text-left shrink-0">
+                      <span className="text-3xl font-extrabold num leading-none">{r.seats}</span>
+                      {delta !== 0 && <span className={`mr-1 text-xs font-bold ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>{signed(delta)}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      inputMode="numeric"
+                      aria-label={`קולות ${p.name}`}
+                      className="input num text-lg font-semibold flex-1 !py-2.5"
+                      value={draft.votes[p.id] ? n(draft.votes[p.id]) : ""}
+                      placeholder="0"
+                      onChange={e => setVotes(p.id, e.target.value)}
+                      onFocus={e => e.target.select()}
+                      disabled={closed}
+                    />
+                    <div className="shrink-0 w-24 text-center">
+                      {r.votes === 0 ? <span className="text-slate-300">—</span> : r.passed
+                        ? <span className={`badge ${r.thresholdMargin < 25000 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>עברה</span>
+                        : <span className="badge bg-red-100 text-red-700 whitespace-nowrap">חסרים {n(-r.thresholdMargin)}</span>}
+                    </div>
+                  </div>
+                  {r.passed && (
+                    <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
+                      <div className="flex items-center gap-2">
+                        <DangerDot level={r.dangerLevel} toLose={r.toLose} />
+                        <AgreementBadge effect={r.agreementEffect} />
+                      </div>
+                      <div className="num text-left">
+                        {r.toGain !== null && <span>+{n(r.toGain)} למנדט</span>}
+                        {r.toGain !== null && r.toLose !== null && <span className="mx-1">·</span>}
+                        {r.toLose !== null && <span>−{n(r.toLose)} לאיבוד</span>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <div className="p-3 bg-slate-50 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold">רשימות אחרות</div>
+                <div><span className={`text-2xl font-extrabold num ${live.result.totalSeats === 120 || live.result.totalValidVotes === 0 ? "" : "text-red-600"}`}>{live.result.totalSeats}</span><span className="text-slate-400 text-xs"> /120</span></div>
+              </div>
+              <input inputMode="numeric" aria-label="קולות רשימות אחרות" className="input num" value={draft.otherValidVotes ? n(draft.otherValidVotes) : ""} placeholder="0" onChange={e => setDraft(d => d && { ...d, otherValidVotes: parseInt(e.target.value.replace(/[^\d]/g, ""), 10) || 0 })} disabled={closed} />
+              <div className="text-xs text-slate-500">קולות כשרים שלא הוזנו לעיל — נספרים לצורך אחוז החסימה בלבד</div>
+            </div>
+          </div>
+          <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm min-w-[860px]">
             <thead className="bg-slate-50 text-slate-500 text-xs">
               <tr>
                 <th className="text-right px-4 py-3 font-semibold">רשימה</th>
@@ -148,13 +216,14 @@ export default function VotesPage() {
             <tfoot className="bg-slate-50 border-t border-slate-200 text-sm">
               <tr>
                 <td className="px-4 py-3 font-semibold" colSpan={2}>רשימות אחרות (קולות כשרים שלא הוזנו לעיל)</td>
-                <td className="px-2 py-2"><input inputMode="numeric" className="input num" value={draft.otherValidVotes ? n(draft.otherValidVotes) : ""} placeholder="0" onChange={e => setDraft(d => d && { ...d, otherValidVotes: parseInt(e.target.value.replace(/[^\d]/g, ""), 10) || 0 })} /></td>
+                <td className="px-2 py-2"><input inputMode="numeric" className="input num" value={draft.otherValidVotes ? n(draft.otherValidVotes) : ""} placeholder="0" onChange={e => setDraft(d => d && { ...d, otherValidVotes: parseInt(e.target.value.replace(/[^\d]/g, ""), 10) || 0 })} disabled={closed} /></td>
                 <td className="px-2 py-2 text-slate-500 text-xs" colSpan={2}>נספרות לצורך אחוז החסימה בלבד</td>
                 <td className="px-2 py-2 text-center"><span className={`text-2xl font-extrabold num ${live.result.totalSeats === 120 || live.result.totalValidVotes === 0 ? "" : "text-red-600"}`}>{live.result.totalSeats}</span><span className="text-slate-400 text-xs"> /120</span></td>
                 <td colSpan={3} />
               </tr>
             </tfoot>
           </table>
+          </div>
         </div>
 
         <aside className="space-y-4">

@@ -29,10 +29,10 @@ export default function Board() {
   const biggest = [...blocs].sort((a, b) => b.seats - a.seats)[0];
 
   return (
-    <main className="min-h-screen bg-[#0b1220] text-white p-6 md:p-10">
+    <main className="min-h-screen bg-[#0b1220] text-white p-4 sm:p-6 md:p-10">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-3 flex-wrap">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-3 flex-wrap">
             {state.election.name}
             {closed && <span className="text-sm font-bold bg-white text-[#0b1220] rounded-full px-3 py-1">תוצאות סופיות</span>}
           </h1>
@@ -44,7 +44,7 @@ export default function Board() {
             {state.note && <span className="text-slate-300">{state.note}</span>}
           </p>
         </div>
-        <div className="flex items-center gap-3 text-sm text-slate-400">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400">
           <span className="inline-flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full ${error ? "bg-red-400" : "bg-emerald-400"} animate-pulse`} />{error ? "אין קשר לשרת" : `חי · ${clock(loadedAt)}`}</span>
           {role === "admin" && <Link href="/admin" className="text-slate-300 hover:text-white underline underline-offset-4">ניהול</Link>}
           <form action="/api/logout" method="post"><button className="text-slate-400 hover:text-white underline underline-offset-4">יציאה</button></form>
@@ -77,7 +77,7 @@ export default function Board() {
                       <div className="text-slate-400 text-xs num">{b.partyIds.length} רשימות · {n(b.votes)} קולות{b.seats >= 61 ? " · רוב" : ""}</div>
                     </div>
                   </div>
-                  <div className="text-5xl font-extrabold num leading-none" style={{ color: b.color }}>{b.seats}</div>
+                  <div className="text-4xl sm:text-5xl font-extrabold num leading-none" style={{ color: b.color }}>{b.seats}</div>
                 </div>
               ))}
               {unassigned.length > 0 && (
@@ -93,11 +93,11 @@ export default function Board() {
           <section className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {passed.map(r => (
               <article key={r.id} className="rounded-2xl bg-white/[0.04] border border-white/10 overflow-hidden">
-                <div className="px-5 pt-4 pb-3 flex items-start gap-4">
+                <div className="px-4 sm:px-5 pt-4 pb-3 flex items-start gap-3 sm:gap-4">
                   <div className="h-16 w-1.5 rounded-full shrink-0 mt-1" style={{ background: blocColor(r.blocId) }} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="text-2xl font-bold leading-tight">{r.name}</span>
+                      <span className="text-xl sm:text-2xl font-bold leading-tight">{r.name}</span>
                       {r.letters && <span className="text-slate-400 text-base font-semibold">{r.letters}</span>}
                     </div>
                     <div className="text-slate-400 text-sm num mt-1">{n(r.votes)} קולות · {pct(r.percent)}</div>
@@ -106,7 +106,7 @@ export default function Board() {
                       <AgreementBadge effect={r.agreementEffect} />
                     </div>
                   </div>
-                  <div className="text-6xl font-extrabold num leading-none tracking-tight">{r.seats}</div>
+                  <div className="text-5xl sm:text-6xl font-extrabold num leading-none tracking-tight">{r.seats}</div>
                 </div>
                 {(r.toGain !== null || r.toLose !== null) && (
                   <div className="grid grid-cols-2 divide-x divide-x-reverse divide-white/10 border-t border-white/10 bg-black/20 text-sm">
@@ -131,7 +131,7 @@ export default function Board() {
               {failed.length === 0 ? <p className="text-slate-500 text-sm mt-2">כל הרשימות שהוזנו עברו את אחוז החסימה.</p> : (
                 <ul className="mt-3 space-y-2">
                   {failed.sort((a, b) => b.votes - a.votes).map(r => (
-                    <li key={r.id} className="flex items-center justify-between gap-3 text-sm">
+                    <li key={r.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-sm">
                       <span><b>{r.name}</b> <span className="text-slate-400">{r.letters}</span></span>
                       <span className="num text-slate-300 whitespace-nowrap">{n(r.votes)} · {pct(r.percent)} · <span className="text-red-300">חסרים {n(-r.thresholdMargin)}</span></span>
                     </li>
@@ -145,8 +145,8 @@ export default function Board() {
             <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-5">
               <h2 className="font-bold text-slate-200">המנדט הבא</h2>
               <dl className="mt-3 space-y-2 text-sm">
-                {computed.closestGain && <div className="flex justify-between gap-3"><dt className="text-slate-400">הקרובה ביותר למנדט נוסף</dt><dd className="text-left"><b>{computed.closestGain.name}</b> — עוד <span className="num">{n(computed.closestGain.toGain)}</span> קולות</dd></div>}
-                {computed.closestLoss && <div className="flex justify-between gap-3"><dt className="text-slate-400">הקרובה ביותר לאבד מנדט</dt><dd className="text-left"><b>{computed.closestLoss.name}</b> — מרווח <span className="num">{n(computed.closestLoss.toLose)}</span> קולות</dd></div>}
+                {computed.closestGain && <div className="flex flex-wrap justify-between gap-x-3"><dt className="text-slate-400">הקרובה ביותר למנדט נוסף</dt><dd className="text-left"><b>{computed.closestGain.name}</b> — עוד <span className="num">{n(computed.closestGain.toGain)}</span> קולות</dd></div>}
+                {computed.closestLoss && <div className="flex flex-wrap justify-between gap-x-3"><dt className="text-slate-400">הקרובה ביותר לאבד מנדט</dt><dd className="text-left"><b>{computed.closestLoss.name}</b> — מרווח <span className="num">{n(computed.closestLoss.toLose)}</span> קולות</dd></div>}
                 <div className="flex justify-between"><dt className="text-slate-400">קולות כשרים</dt><dd className="num">{n(computed.result.totalValidVotes)}</dd></div>
                 <div className="flex justify-between"><dt className="text-slate-400">מנדטים בשלב הראשון / עודפים</dt><dd className="num">{computed.result.firstStageTotal} / {computed.result.totalSeats - computed.result.firstStageTotal}</dd></div>
                 <div className="flex justify-between"><dt className="text-slate-400">סה״כ מנדטים</dt><dd className={`num font-bold ${computed.result.totalSeats === 120 ? "text-emerald-300" : "text-red-300"}`}>{computed.result.totalSeats} / 120</dd></div>
