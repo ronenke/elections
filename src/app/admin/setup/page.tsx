@@ -4,7 +4,7 @@ import { useElection } from "@/components/useElection";
 import { Toasts, useToast } from "@/components/Toast";
 import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import type { ElectionState, Party } from "@/lib/types";
-import { rehearsal2022, seedState } from "@/lib/seed";
+import { parseSetupText, applySetupPaste, type PasteParse } from "@/lib/setupPaste";
 import { ClosedBanner } from "@/components/ClosedBanner";
 
 /** Parties, ballot letters, blocs and surplus agreements. Fill in before election night. */
@@ -13,6 +13,10 @@ export default function SetupPage() {
   const { toasts, push, remove } = useToast();
   const [draft, setDraft] = useState<ElectionState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [pasteMode, setPasteMode] = useState<"merge" | "replace">("merge");
+  const [parsed, setParsed] = useState<PasteParse | null>(null);
 
   useEffect(() => { if (data && !draft) setDraft(data.state); }, [data, draft]);
   const dirty = !!(draft && data && JSON.stringify(draft) !== JSON.stringify(data.state));
@@ -59,11 +63,13 @@ export default function SetupPage() {
       push("ok", "ההגדרות נשמרו");
     } catch (e) { push("error", (e as Error).message); } finally { setSaving(false); }
   }
-  function loadPreset(kind: "2022" | "2026") {
-    if (!confirm(kind === "2022" ? "לטעון את תוצאות 2022 לחזרה גנרלית? הנתונים הנוכחיים יוחלפו (ניתן לשחזר מההיסטוריה)." : "לאפס לרשימות 2026 ההתחלתיות? הקולות יימחקו (ניתן לשחזר מההיסטוריה).")) return;
-    const s = kind === "2022" ? rehearsal2022() : seedState();
-    // keep the identity of this election; replace only its content
-    setDraft({ ...s, id: draft!.id, status: draft!.status, createdAt: draft!.createdAt, version: draft!.version });
+  function analyze() { setParsed(parseSetupText(pasteText)); }
+  function applyPaste() {
+    if (!parsed || parsed.errors.length) return;
+    if (pasteMode === "replace" && !confirm("להחליף את כל הרשימות, הגושים וההסכמים במה שהודבק? כל הקולות שהוזנו יאופסו (ניתן לשחזר מההיסטוריה).")) return;
+    setDraft(d => d && applySetupPaste(d, parsed.rows, pasteMode));
+    setParsed(null); setPasteText(""); setPasteOpen(false);
+    push("ok", pasteMode === "replace" ? "הרשימות הוחלפו — לחצו שמירה כדי לפרסם" : "הרשימות עודכנו — לחצו שמירה כדי לפרסם");
   }
 
   return (
@@ -75,12 +81,51 @@ export default function SetupPage() {
           <p className="text-sm text-slate-500">למלא לפני ליל הבחירות. אותיות הרשימות והסכמי העודפים — לפי פרסומי ועדת הבחירות המרכזית.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="btn-secondary" onClick={() => loadPreset("2022")} disabled={closed}>טעינת חזרה גנרלית (2022)</button>
-          <button className="btn-secondary" onClick={() => loadPreset("2026")} disabled={closed}>איפוס לרשימות 2026</button>
+          <button className="btn-secondary" onClick={() => setPasteOpen(o => !o)} disabled={closed}>טעינת רשימות מהדבקה</button>
           <button className="btn-primary" onClick={doSave} disabled={!dirty || saving || closed}>{saving ? "שומר…" : "שמירה"}</button>
         </div>
       </div>
       {closed && <ClosedBanner />}
+
+      {pasteOpen && !closed && (
+        <div className="card p-4 space-y-3 border-blue-300 ring-2 ring-blue-100">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-bold">טעינת רשימות מהדבקה</h2>
+            <div className="flex items-center gap-3 text-sm">
+              <label className="inline-flex items-center gap-1.5"><input type="radio" name="pmode" checked={pasteMode === "merge"} onChange={() => setPasteMode("merge")} /> עדכון הרשימה הקיימת</label>
+              <label className="inline-flex items-center gap-1.5"><input type="radio" name="pmode" checked={pasteMode === "replace"} onChange={() => setPasteMode("replace")} /> החלפה מלאה</label>
+            </div>
+          </div>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            שורה לכל רשימה, בפורמט: <code className="bg-slate-100 rounded px-1">שם המפלגה | אות | גוש | מפלגה שותפה להסכם עודפים</code> (מפריד: קו אנכי או טאב; גוש ושותפה אופציונליים; אפשר שורת כותרת ראשונה).
+            את השותפה מציינים בשם או באותיות, ומספיק על אחת משתי השורות. גושים שלא קיימים ייווצרו אוטומטית.
+            {pasteMode === "merge"
+              ? " במצב עדכון: רשימה קיימת מזוהה לפי אותיות ואז לפי שם ומתעדכנת; רשימות חדשות נוספות; רשימות שלא הודבקו נשארות; הקולות נשמרים. שורה שהודבקה בלי שותפה מבטלת את ההסכם הקיים שלה."
+              : " במצב החלפה: כל הרשימות, הגושים וההסכמים נבנים מחדש מההדבקה, והקולות מאופסים."}
+          </p>
+          <textarea className="input h-40" value={pasteText} onChange={e => { setPasteText(e.target.value); setParsed(null); }} placeholder={"שם המפלגה | אות | גוש | שותפה להסכם עודפים\nהליכוד | מחל | ימין | הציונות הדתית\nהציונות הדתית | ט | ימין |\nיש עתיד | פה | מרכז-שמאל |"} />
+          <div className="flex items-center gap-2">
+            <button className="btn-secondary" onClick={analyze} disabled={!pasteText.trim()}>ניתוח הטקסט</button>
+            {parsed && parsed.errors.length === 0 && <button className="btn-primary" onClick={applyPaste}>{pasteMode === "replace" ? "החלפת הרשימות" : "עדכון הרשימות"} ({parsed.rows.length})</button>}
+            <button className="text-sm text-slate-500 hover:text-slate-800 mr-auto" onClick={() => { setPasteOpen(false); setParsed(null); }}>סגירה</button>
+          </div>
+          {parsed && (
+            <div className="space-y-2">
+              {parsed.errors.length > 0 && <div className="rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm p-3 space-y-0.5">{parsed.errors.map((e, i) => <div key={i}>✖ {e}</div>)}</div>}
+              {parsed.warnings.length > 0 && <div className="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm p-3 space-y-0.5">{parsed.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}</div>}
+              {parsed.rows.length > 0 && (
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="text-right px-3 py-1.5">שם</th><th className="text-right px-3 py-1.5">אות</th><th className="text-right px-3 py-1.5">גוש</th><th className="text-right px-3 py-1.5">הסכם עודפים עם</th><th className="text-right px-3 py-1.5">מצב</th></tr></thead>
+                  <tbody>{parsed.rows.map((r, i) => {
+                    const exists = draft.parties.some(p => (r.letters && p.letters === r.letters) || p.name.trim() === r.name.trim());
+                    return <tr key={i} className="border-t border-slate-100"><td className="px-3 py-1 font-semibold">{r.name}</td><td className="px-3 py-1">{r.letters || "—"}</td><td className="px-3 py-1">{r.bloc || "—"}</td><td className="px-3 py-1">{r.partner || "—"}</td><td className="px-3 py-1 text-xs">{pasteMode === "replace" ? <span className="badge bg-slate-100 text-slate-600">חדש</span> : exists ? <span className="badge bg-blue-100 text-blue-800">עדכון</span> : <span className="badge bg-emerald-100 text-emerald-800">תוספת</span>}</td></tr>;
+                  })}</tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <fieldset disabled={closed} className="contents">
       <div className="card p-4 grid gap-3 md:grid-cols-3">

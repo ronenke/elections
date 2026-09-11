@@ -58,6 +58,8 @@ A note on Google Drive: it works fine as the home of the code, with two habits. 
    | `SESSION_SECRET` | a long random string — in Terminal: `openssl rand -hex 32` and paste the output |
    | `SUPABASE_URL` | the Project URL from step 2 |
    | `SUPABASE_SERVICE_ROLE_KEY` | the service_role key from step 2 |
+   | `VIEWER_USERNAME` *(optional)* | name of the view-only account (default `user`) |
+   | `VIEWER_PASSWORD` *(optional)* | its password (default: same as `ADMIN_PASSWORD`) |
 
 4. Click **Deploy**. About 1–2 minutes.
 
@@ -76,7 +78,8 @@ A note on Google Drive: it works fine as the home of the code, with two habits. 
 0. **מערכות בחירות**: check that the election you will use is marked *פעילה* (create one if needed — name, date, CEC URL). Old elections can be kept closed as archives.
 1. Log in → **רשימות והסכמים**. Fill in the ballot letters from https://www.gov.il/he/pages/candidates-lists-26, fix names, set blocs (colours are yours to choose), and set surplus agreements as they are published by the CEC (deadline is shortly before election day).
 2. Set the CEC results URL once the site exists (expected `https://votes26.bechirot.gov.il/`). Save.
-3. Rehearse: **רשימות והסכמים → טעינת חזרה גנרלית (2022)** loads the 2022 election; the board should show Likud 32, Yesh Atid 24 … Labor 4. Then **איפוס לרשימות 2026** to return. Everything you did is in **היסטוריה** and can be restored.
+3. Rehearse: **מערכות בחירות → יצירת מערכת** with the template "תוצאות הכנסת ה-25 (2022)"; the board should show Likud 32, Yesh Atid 24 … Labor 4. Then activate your real election again. Lists for a new election can be pasted in bulk: **רשימות והסכמים → טעינת רשימות מהדבקה**.
+4. For the studio screen, log in as the view-only user (`user`) — it sees the board only and cannot change anything.
 
 ## Election night — how it runs
 

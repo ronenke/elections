@@ -16,8 +16,10 @@ function LoginForm() {
     setError(null);
     const res = await fetch("/api/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ username, password }) });
     if (res.ok) {
+      const body = await res.json().catch(() => ({}));
       const next = params.get("next");
-      window.location.href = next && next.startsWith("/") ? next : "/admin";
+      const home = body.home ?? "/admin";
+      window.location.href = body.role === "admin" && next && next.startsWith("/") ? next : home;
       return;
     }
     const body = await res.json().catch(() => ({}));
@@ -30,7 +32,7 @@ function LoginForm() {
       <div className="text-center space-y-1">
         <div className="mx-auto h-12 w-12 rounded-2xl bg-blue-600 text-white grid place-items-center text-2xl font-extrabold">120</div>
         <h1 className="text-xl font-bold">חישוב מנדטים</h1>
-        <p className="text-sm text-slate-500">הבחירות לכנסת ה-26 · כניסת מנהל</p>
+        <p className="text-sm text-slate-500">כניסה למערכת</p>
       </div>
       <div>
         <label className="label" htmlFor="u">שם משתמש</label>

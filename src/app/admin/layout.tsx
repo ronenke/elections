@@ -12,7 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <AdminNav />
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/" target="_blank" className="btn-secondary">לוח שידור ↗</Link>
+            <Link href="/" className="btn-secondary">לוח שידור</Link>
             <form action="/api/logout" method="post"><button className="btn-secondary">יציאה</button></form>
           </div>
         </div>

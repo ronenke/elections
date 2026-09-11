@@ -36,32 +36,43 @@ function timingSafeEqual(a: string, b: string): boolean {
   return out === 0;
 }
 
-export function checkCredentials(username: string, password: string): boolean {
-  const u = process.env.ADMIN_USERNAME ?? "";
-  const p = process.env.ADMIN_PASSWORD ?? "";
-  if (!u || !p) return false;
-  // evaluate both to keep timing uniform
-  const okU = timingSafeEqual(username, u);
-  const okP = timingSafeEqual(password, p);
-  return okU && okP;
+export type Role = "admin" | "viewer";
+
+/**
+ * Two fixed accounts:
+ *  - admin:  ADMIN_USERNAME / ADMIN_PASSWORD — everything.
+ *  - viewer: VIEWER_USERNAME (default "user") / VIEWER_PASSWORD (default: same as ADMIN_PASSWORD) — the board only.
+ */
+export function checkCredentials(username: string, password: string): Role | null {
+  const au = process.env.ADMIN_USERNAME ?? "";
+  const ap = process.env.ADMIN_PASSWORD ?? "";
+  const vu = process.env.VIEWER_USERNAME ?? "user";
+  const vp = process.env.VIEWER_PASSWORD ?? ap;
+  if (!au || !ap) return null;
+  // evaluate all comparisons to keep timing uniform
+  const isAdmin = timingSafeEqual(username, au) && timingSafeEqual(password, ap);
+  const isViewer = timingSafeEqual(username, vu) && timingSafeEqual(password, vp);
+  if (isAdmin) return "admin";
+  if (isViewer) return "viewer";
+  return null;
 }
 
-export async function createSessionToken(username: string): Promise<string> {
+export async function createSessionToken(username: string, role: Role): Promise<string> {
   const exp = Date.now() + SESSION_DAYS * 86400_000;
-  const payload = b64url(enc.encode(JSON.stringify({ u: username, exp })));
+  const payload = b64url(enc.encode(JSON.stringify({ u: username, r: role, exp })));
   return `${payload}.${await hmac(payload)}`;
 }
 
-export async function verifySessionToken(token: string | undefined): Promise<{ username: string } | null> {
+export async function verifySessionToken(token: string | undefined): Promise<{ username: string; role: Role } | null> {
   if (!token) return null;
   const [payload, sig] = token.split(".");
   if (!payload || !sig) return null;
   const expected = await hmac(payload);
   if (!timingSafeEqual(sig, expected)) return null;
   try {
-    const { u, exp } = JSON.parse(new TextDecoder().decode(Uint8Array.from(fromB64url(payload), c => c.charCodeAt(0)))) as { u: string; exp: number };
+    const { u, r, exp } = JSON.parse(new TextDecoder().decode(Uint8Array.from(fromB64url(payload), c => c.charCodeAt(0)))) as { u: string; r?: Role; exp: number };
     if (typeof exp !== "number" || Date.now() > exp) return null;
-    return { username: u };
+    return { username: u, role: r === "viewer" ? "viewer" : "admin" };
   } catch {
     return null;
   }

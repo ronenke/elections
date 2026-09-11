@@ -1,4 +1,4 @@
-# Deploying version 2.3 (multi-election, close, new columns, diagnostics, parliament diagram, CEC parser fix)
+# Deploying version 2.4
 
 Three steps, in this order. Nothing on the live site changes until step 3, and step 1 does not affect the running version 1.
 
@@ -50,6 +50,11 @@ Two quick checks that pinpoint the cause of "changes don't stick":
 - **v2.2**: parliament diagram (120 seats on arcs, blocs fill from the right, the 61 line marks a majority; hover a seat for its list), bloc cards beside it, redesigned list cards with a two-cell footer ("למנדט נוסף: עוד N" / "מרווח עד איבוד מנדט: N"), and **עריכת פרטים** on the elections screen to change an election's name, date or CEC URL (also when closed). Default bloc colours changed to a colour-blind-safe trio; existing elections keep whatever colours they have.
 
 - **v2.3 — CEC import fix**: the parser previously took the *first* number in a row as the vote count; on the CEC's final-results page the column order is name, letters, **mandates**, percent, votes, so mandates would have been read as votes. Now columns are identified by their header text ("מספר הקולות", "מנדטים", "אחוז"…), never by position. Every import is cross-checked — each list's percent must equal votes ÷ total, the sum may not exceed the published total, and tiny "votes" next to a real percentage are rejected — and any inconsistency **blocks** the apply button with a red explanation. When the CEC publishes mandates (final results), they are compared list by list with our own calculation and any difference is shown in red. Tip: paste the whole page (Ctrl+A, Ctrl+C), so the header row and the total valid votes are included.
+
+- **v2.4**:
+  - **Second user for viewing only.** Log in as `user` to get the on-air board and nothing else (no ניהול link, all admin pages and write APIs refused). By default `user`'s password is the same as the admin password. To give the viewer a different password, or a different name, add in Vercel → Settings → Environment Variables: `VIEWER_USERNAME` and/or `VIEWER_PASSWORD`, then *Redeploy*. The board now has a **יציאה** button (top-right, next to the live indicator); the ניהול link shows only for the admin.
+  - **ניהול / לוח שידור** links open in the same tab.
+  - **רשימות והסכמים**: the "חזרה גנרלית 2022" and "איפוס 2026" buttons are gone (a 2022 rehearsal is still available as a template when creating an election on the מערכות בחירות screen). Instead, **טעינת רשימות מהדבקה**: paste one line per list — `שם המפלגה | אות | גוש | מפלגה שותפה להסכם עודפים` (separator `|` or tab; bloc and partner optional; an optional header line). *עדכון הרשימה הקיימת* matches existing lists by letters, then by name, updates them, adds new ones, keeps the others and keeps all votes; *החלפה מלאה* rebuilds lists, blocs and agreements from the paste and resets votes. Blocs that don't exist are created. The partner can be given by name or letters and on either line; contradictions, unknown partners, duplicates and a list in two agreements are reported and block the apply. Nothing is saved until you press שמירה.
 
 ## Rollback (if ever needed)
 

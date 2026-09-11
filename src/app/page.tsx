@@ -4,12 +4,15 @@ import { useElection } from "@/components/useElection";
 import { n, pct, clock } from "@/lib/format";
 import { AgreementBadge, DangerDot } from "@/components/Badges";
 import { Hemicycle } from "@/components/Hemicycle";
+import { useEffect, useState } from "react";
 
 /**
  * The on-air board: what the presenter reads from. Large, calm, high contrast. Polls every 10 s.
  */
 export default function Board() {
   const { data, error, loadedAt } = useElection(10_000);
+  const [role, setRole] = useState<"admin" | "viewer" | null>(null);
+  useEffect(() => { fetch("/api/me", { cache: "no-store" }).then(r => r.json()).then(b => setRole(b.role ?? null)).catch(() => {}); }, []);
   if (!data) return <main className="min-h-screen bg-[#0b1220] text-white grid place-items-center">{error ? <p className="text-red-300">{error}</p> : <p className="text-slate-400">טוען…</p>}</main>;
 
   const { state, computed } = data;
@@ -43,7 +46,8 @@ export default function Board() {
         </div>
         <div className="flex items-center gap-3 text-sm text-slate-400">
           <span className="inline-flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full ${error ? "bg-red-400" : "bg-emerald-400"} animate-pulse`} />{error ? "אין קשר לשרת" : `חי · ${clock(loadedAt)}`}</span>
-          <Link href="/admin" className="text-slate-300 hover:text-white underline underline-offset-4">ניהול</Link>
+          {role === "admin" && <Link href="/admin" className="text-slate-300 hover:text-white underline underline-offset-4">ניהול</Link>}
+          <form action="/api/logout" method="post"><button className="text-slate-400 hover:text-white underline underline-offset-4">יציאה</button></form>
         </div>
       </header>
 
