@@ -1,4 +1,4 @@
-# Deploying version 2.2 (multi-election, close, new columns, diagnostics, parliament diagram)
+# Deploying version 2.3 (multi-election, close, new columns, diagnostics, parliament diagram, CEC parser fix)
 
 Three steps, in this order. Nothing on the live site changes until step 3, and step 1 does not affect the running version 1.
 
@@ -48,6 +48,8 @@ Two quick checks that pinpoint the cause of "changes don't stick":
   - **סכנת מנדט**: five-level colour (green → red) of how safe the list's *last* seat is, relative to the other lists with seats. Ranked by "votes it could lose before losing a seat"; the lists are split into five equal groups by rank (10 lists → 2 per colour). Hover for the exact number.
 - **לוח שידור** shows the same two indicators on each list card and "מנדט = N קולות" in the header.
 - **v2.2**: parliament diagram (120 seats on arcs, blocs fill from the right, the 61 line marks a majority; hover a seat for its list), bloc cards beside it, redesigned list cards with a two-cell footer ("למנדט נוסף: עוד N" / "מרווח עד איבוד מנדט: N"), and **עריכת פרטים** on the elections screen to change an election's name, date or CEC URL (also when closed). Default bloc colours changed to a colour-blind-safe trio; existing elections keep whatever colours they have.
+
+- **v2.3 — CEC import fix**: the parser previously took the *first* number in a row as the vote count; on the CEC's final-results page the column order is name, letters, **mandates**, percent, votes, so mandates would have been read as votes. Now columns are identified by their header text ("מספר הקולות", "מנדטים", "אחוז"…), never by position. Every import is cross-checked — each list's percent must equal votes ÷ total, the sum may not exceed the published total, and tiny "votes" next to a real percentage are rejected — and any inconsistency **blocks** the apply button with a red explanation. When the CEC publishes mandates (final results), they are compared list by list with our own calculation and any difference is shown in red. Tip: paste the whole page (Ctrl+A, Ctrl+C), so the header row and the total valid votes are included.
 
 ## Rollback (if ever needed)
 

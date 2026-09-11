@@ -6,8 +6,8 @@ import { compute } from "@/lib/compute";
 import { n, pct, signed } from "@/lib/format";
 import { ClosedBanner } from "@/components/ClosedBanner";
 
-interface ReviewRow { letters: string; name: string; votes: number; percent: number | null; partyId: string | null }
-interface Parsed { rows: ReviewRow[]; countedPercent: number | null; totalValidVotes: number | null; warnings: string[]; fetchedAt?: string; url?: string }
+interface ReviewRow { letters: string; name: string; votes: number; percent: number | null; seats: number | null; partyId: string | null }
+interface Parsed { rows: ReviewRow[]; countedPercent: number | null; totalValidVotes: number | null; method: "header" | "heuristic"; warnings: string[]; errors: string[]; fetchedAt?: string; url?: string }
 
 /**
  * Import from ועדת הבחירות: fetch the results page server-side, or paste the table.
@@ -30,7 +30,11 @@ export default function ImportPage() {
     const matchedSum = matched.reduce((s, r) => s + r.votes, 0);
     const other = parsed.totalValidVotes !== null ? Math.max(0, parsed.totalValidVotes - matchedSum) : unmatchedSum;
     const next = { ...data.state, votes, otherValidVotes: other, countedPercent: parsed.countedPercent ?? data.state.countedPercent };
-    return { next, computed: compute(next, false), unmatchedSum, matchedSum };
+    const computed = compute(next, false);
+    // when the CEC publishes mandates (final results), our calculation must reproduce them exactly
+    const cecSeats = matched.filter(r => r.seats !== null);
+    const seatMismatches = cecSeats.filter(r => (computed.rows.find(x => x.id === r.partyId)?.seats ?? 0) !== r.seats);
+    return { next, computed, unmatchedSum, matchedSum, cecSeats: cecSeats.length, seatMismatches };
   }, [data, parsed]);
 
   async function doFetch() {
@@ -91,7 +95,7 @@ export default function ImportPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm text-slate-600">באתר ועדת הבחירות סמנו את טבלת התוצאות (אות, שם הרשימה, קולות, אחוז), העתיקו (Ctrl+C) והדביקו כאן. אפשר להדביק גם את כל הדף.</p>
+            <p className="text-sm text-slate-600">באתר ועדת הבחירות סמנו את טבלת התוצאות <b>כולל שורת הכותרות</b> (שם הרשימה, אותיות, מנדטים אם יש, אחוז, מספר הקולות), העתיקו (Ctrl+C) והדביקו כאן. עדיף להעתיק את כל הדף — כך גם סך הקולות הכשרים נקרא ומשמש לאימות.</p>
             <textarea className="input h-40 num" dir="rtl" value={text} onChange={e => setText(e.target.value)} placeholder={"מחל\tהליכוד\t1,115,336\t23.41%\nפה\tיש עתיד\t847,435\t17.79%"} />
             <button className="btn-primary" onClick={doParse} disabled={busy !== null || !text.trim()}>{busy === "parse" ? "מנתח…" : "ניתוח הטקסט"}</button>
           </div>
@@ -106,14 +110,27 @@ export default function ImportPage() {
               {parsed.countedPercent !== null && <> · נספרו <span className="num">{pct(parsed.countedPercent, 1)}</span></>}
               {parsed.totalValidVotes !== null && <> · קולות כשרים <span className="num">{n(parsed.totalValidVotes)}</span></>}
               {parsed.fetchedAt && <> · נמשך {new Date(parsed.fetchedAt).toLocaleTimeString("he-IL")}</>}
+              {" · "}<span className={parsed.method === "header" ? "text-emerald-700" : "text-amber-700"}>{parsed.method === "header" ? "עמודות זוהו לפי כותרות" : "עמודות זוהו לפי ניחוש"}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className={`badge ${preview.computed.result.totalSeats === 120 ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"}`}>{preview.computed.result.totalSeats} / 120 מנדטים</span>
               <button className="btn-secondary" onClick={() => setParsed(null)}>ביטול</button>
-              <button className="btn-primary" onClick={doApply} disabled={busy !== null || closed || !preview.computed.result.ok || parsed.rows.filter(r => r.partyId).length === 0}>{busy === "apply" ? "מייבא…" : "אישור וייבוא"}</button>
+              <button className="btn-primary" onClick={doApply} disabled={busy !== null || closed || parsed.errors.length > 0 || !preview.computed.result.ok || parsed.rows.filter(r => r.partyId).length === 0}>{busy === "apply" ? "מייבא…" : "אישור וייבוא"}</button>
             </div>
           </div>
-          {parsed.warnings.length > 0 && <div className="px-4 py-2 bg-amber-50 text-amber-800 text-sm border-b border-amber-100">{parsed.warnings.join(" · ")}</div>}
+          {parsed.errors.length > 0 && (
+            <div className="px-4 py-3 bg-red-50 text-red-800 text-sm border-b border-red-200 space-y-1">
+              <b>הייבוא חסום — המספרים לא עקביים:</b>
+              {parsed.errors.map((e, i) => <div key={i}>✖ {e}</div>)}
+              <div className="text-xs text-red-700 mt-1">בדקו את המספרים מול האתר. אפשר להזין ידנית במסך "הזנת קולות".</div>
+            </div>
+          )}
+          {parsed.warnings.length > 0 && <div className="px-4 py-2 bg-amber-50 text-amber-800 text-sm border-b border-amber-100">{parsed.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}</div>}
+          {preview.cecSeats > 0 && (
+            preview.seatMismatches.length === 0
+              ? <div className="px-4 py-2 bg-emerald-50 text-emerald-800 text-sm border-b border-emerald-100">✅ ועדת הבחירות פרסמה מנדטים ל-{preview.cecSeats} רשימות — החישוב שלנו זהה בכולן.</div>
+              : <div className="px-4 py-3 bg-red-50 text-red-800 text-sm border-b border-red-200"><b>✖ אי-התאמה במנדטים מול פרסום ועדת הבחירות:</b> {preview.seatMismatches.map(r => `${r.name} (ועדה ${r.seats}, אצלנו ${preview.computed.rows.find(x => x.id === r.partyId)?.seats ?? 0})`).join(", ")}. בדקו הסכמי עודפים ורשימות חסרות לפני האישור.</div>
+          )}
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-500 text-xs">
               <tr>
@@ -122,6 +139,7 @@ export default function ImportPage() {
                 <th className="text-right px-2 py-2 font-semibold w-52">רשימה במערכת</th>
                 <th className="text-right px-2 py-2 font-semibold w-32">שינוי בקולות</th>
                 <th className="text-center px-2 py-2 font-semibold w-28">מנדטים</th>
+                {preview.cecSeats > 0 && <th className="text-center px-2 py-2 font-semibold w-24">מנדטים לפי הוועדה</th>}
               </tr>
             </thead>
             <tbody>
@@ -141,6 +159,7 @@ export default function ImportPage() {
                     </td>
                     <td className="px-2 py-1.5 num text-slate-600">{cur !== null ? signed(r.votes - cur) : ""}</td>
                     <td className="px-2 py-1.5 text-center num">{before !== null && after !== null && (<><span className="text-slate-400">{before}</span> ← <b className={after !== before ? (after > before ? "text-emerald-600" : "text-red-600") : ""}>{after}</b></>)}</td>
+                    {preview.cecSeats > 0 && <td className={`px-2 py-1.5 text-center num ${r.seats !== null && after !== null && r.seats !== after ? "bg-red-100 text-red-700 font-bold" : "text-slate-500"}`}>{r.seats ?? "—"}</td>}
                   </tr>
                 );
               })}
