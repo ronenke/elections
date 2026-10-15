@@ -103,7 +103,7 @@ export default function Board() {
                     <div className="text-slate-400 text-sm num mt-1">{n(r.votes)} קולות · {pct(r.percent)}</div>
                     <div className="mt-2 flex items-center gap-3">
                       <DangerDot level={r.dangerLevel} toLose={r.toLose} size={10} />
-                      <AgreementBadge effect={r.agreementEffect} />
+                      <AgreementBadge effect={r.agreementEffect} partner={r.agreementPartner} counterfactual={r.agreementCounterfactual} seats={r.seats} active={r.agreementActive} />
                     </div>
                   </div>
                   <div className="text-5xl sm:text-6xl font-extrabold num leading-none tracking-tight">{r.seats}</div>

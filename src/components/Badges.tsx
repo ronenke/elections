@@ -22,13 +22,20 @@ export function DangerDot({ level, toLose, size = 12 }: { level: 1 | 2 | 3 | 4 |
   );
 }
 
-/** +1 / −1 / 0 effect of a surplus agreement; nothing when the list has no agreement. */
-export function AgreementBadge({ effect }: { effect: number | null }) {
+/**
+ * Surplus-agreement badge. +1 = the list received the pair's surplus seat in the split between the two partners
+ * (the conventional meaning); 0 = in an agreement, surplus seat went to the partner or there was none.
+ * The tooltip adds the counterfactual ("without the agreement it would have N").
+ */
+export function AgreementBadge({ effect, partner, counterfactual, seats, active = true }: { effect: number | null; partner?: string | null; counterfactual?: number | null; seats?: number; active?: boolean }) {
   if (effect === null) return null;
-  if (effect === 0) return <span className="badge bg-slate-100 text-slate-500" title="יש הסכם עודפים, ללא השפעה על המנדטים כרגע">0</span>;
+  const withPartner = partner ? ` (הסכם עם ${partner})` : "";
+  const cf = counterfactual === null || counterfactual === undefined || seats === undefined ? "" : ` · ללא ההסכם: ${seats - counterfactual} מנדטים`;
+  if (!active) return <span className="badge bg-slate-100 text-slate-400" title={`הסכם עודפים${withPartner} — לא פעיל: אחת השותפות לא עברה את אחוז החסימה`}>0</span>;
+  if (effect === 0) return <span className="badge bg-slate-100 text-slate-500" title={`בהסכם עודפים${withPartner} — המנדט העודף של הזוג לא הגיע לרשימה זו${cf}`}>0</span>;
   const pos = effect > 0;
   return (
-    <span className={`badge ${pos ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"}`} title={pos ? "מנדט שהתקבל בזכות הסכם העודפים" : "מנדט שאבד בגלל הסכם העודפים"}>
+    <span className={`badge ${pos ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"}`} title={pos ? `קיבלה את המנדט העודף של הזוג${withPartner}${cf}` : `מנדט שאבד בגלל הסכם העודפים${withPartner}`}>
       {pos ? `+${effect}` : `−${-effect}`}
     </span>
   );

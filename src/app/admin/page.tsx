@@ -132,7 +132,7 @@ export default function VotesPage() {
                     <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
                       <div className="flex items-center gap-2">
                         <DangerDot level={r.dangerLevel} toLose={r.toLose} />
-                        <AgreementBadge effect={r.agreementEffect} />
+                        <AgreementBadge effect={r.agreementEffect} partner={r.agreementPartner} counterfactual={r.agreementCounterfactual} seats={r.seats} active={r.agreementActive} />
                       </div>
                       <div className="num text-left">
                         {r.toGain !== null && <span>+{n(r.toGain)} למנדט</span>}
@@ -163,7 +163,7 @@ export default function VotesPage() {
                 <th className="text-right px-2 py-3 font-semibold w-20">אחוז</th>
                 <th className="text-right px-2 py-3 font-semibold w-24">חסימה</th>
                 <th className="text-center px-2 py-3 font-semibold w-20">מנדטים</th>
-                <th className="text-center px-2 py-3 font-semibold w-20" title="מנדט שהתקבל (+) או אבד (−) בגלל הסכם העודפים, לעומת חישוב ללא ההסכם">הסכם עודפים</th>
+                <th className="text-center px-2 py-3 font-semibold w-20" title="+1 = הרשימה קיבלה את המנדט העודף של הזוג בחלוקה בין שתי השותפות להסכם; 0 = בהסכם, אך המנדט העודף הלך לשותפה (או שאין כזה)">הסכם עודפים</th>
                 <th className="text-center px-2 py-3 font-semibold w-24" title="עד כמה המנדט האחרון בטוח, יחסית לשאר הרשימות">סכנת מנדט</th>
                 <th className="text-right px-2 py-3 font-semibold w-36">רגישות</th>
               </tr>
@@ -203,7 +203,7 @@ export default function VotesPage() {
                       <span className="text-2xl font-extrabold num">{r.seats}</span>
                       {delta !== 0 && <span className={`mr-1 text-xs font-bold ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>{signed(delta)}</span>}
                     </td>
-                    <td className="px-2 py-2 text-center"><AgreementBadge effect={r.agreementEffect} /></td>
+                    <td className="px-2 py-2 text-center"><AgreementBadge effect={r.agreementEffect} partner={r.agreementPartner} counterfactual={r.agreementCounterfactual} seats={r.seats} active={r.agreementActive} /></td>
                     <td className="px-2 py-2 text-center"><DangerDot level={r.dangerLevel} toLose={r.toLose} /></td>
                     <td className="px-2 py-2 text-xs text-slate-500 num">
                       {r.passed && r.toGain !== null && <div>+{n(r.toGain)} למנדט נוסף</div>}

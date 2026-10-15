@@ -4,7 +4,7 @@ import { rehearsal2022 } from "./seed";
 import { computeSeats } from "./engine/baderOfer";
 import { toEngineInput } from "./compute";
 
-describe("agreement effect (+1 / −1)", () => {
+describe("agreement indicator (+1 = received the pair's surplus seat)", () => {
   const c = compute(rehearsal2022());
   const row = (id: string) => c.rows.find(r => r.id === id)!;
 
@@ -12,25 +12,35 @@ describe("agreement effect (+1 / −1)", () => {
     expect(row("yb").agreementEffect).toBeNull();
     expect(row("raam").agreementEffect).toBeNull();
     for (const id of ["likud", "rz", "nu", "ya", "shas", "utj", "labor", "meretz"]) expect(typeof row(id).agreementEffect).toBe("number");
+    expect(row("shas").agreementPartner).toBe("יהדות התורה");
+    expect(row("yb").agreementPartner).toBeNull();
   });
 
-  it("equals seats-with minus seats-without for every pair (2022 data)", () => {
+  it("2022: Shas, Likud and Yesh Atid received their pairs' surplus seats (Galei Tzahal convention)", () => {
+    expect(row("shas").agreementEffect).toBe(1); expect(row("utj").agreementEffect).toBe(0);
+    expect(row("likud").agreementEffect).toBe(1); expect(row("rz").agreementEffect).toBe(0);
+    expect(row("ya").agreementEffect).toBe(1); expect(row("nu").agreementEffect).toBe(0);
+    // Labor–Meretz: Meretz failed the threshold, so the agreement is inactive → both 0
+    expect(row("labor").agreementEffect).toBe(0);
+    expect(row("meretz").agreementEffect).toBe(0);
+  });
+
+  it("matches the engine's pair-split trace exactly", () => {
+    for (const ps of c.result.pairSplits) for (const m of ps.members) expect(row(m.id).agreementEffect).toBe(m.finalSeats - m.floorSeats);
+  });
+
+  it("counterfactual = seats-with minus seats-without for every pair (2022: Shas 0, Likud +1, Yesh Atid +1)", () => {
     const input = toEngineInput(rehearsal2022());
     const base = computeSeats(input);
     for (const [a, b] of input.agreements) {
       const without = computeSeats({ ...input, agreements: input.agreements.filter(x => x[0] !== a) });
       const seats = (r: typeof base, id: string) => r.lists.find(l => l.id === id)!.seats;
-      expect(row(a).agreementEffect).toBe(seats(base, a) - seats(without, a));
-      expect(row(b).agreementEffect).toBe(seats(base, b) - seats(without, b));
+      expect(row(a).agreementCounterfactual).toBe(seats(base, a) - seats(without, a));
+      expect(row(b).agreementCounterfactual).toBe(seats(base, b) - seats(without, b));
     }
-  });
-
-  it("a pair's effects sum to the seats the pair gained together, and an inactive agreement is 0", () => {
-    // Labor–Meretz: Meretz failed the threshold, so the agreement is inactive → both 0
-    expect(row("labor").agreementEffect).toBe(0);
-    expect(row("meretz").agreementEffect).toBe(0);
-    // Likud–RZ in 2022: the pair won the last remainder seat because of the agreement
-    expect(row("likud").agreementEffect! + row("rz").agreementEffect!).toBeGreaterThanOrEqual(0);
+    expect(row("shas").agreementCounterfactual).toBe(0);
+    expect(row("likud").agreementCounterfactual).toBe(1);
+    expect(row("ya").agreementCounterfactual).toBe(1);
   });
 });
 

@@ -20,7 +20,7 @@ That is all a normal version needs. **Database changes are the exception**, and 
 
 ## One-time migration (already done — do not repeat)
 
-`supabase/migration-002.sql` converted the v1 database (single election) to the v2 layout. You ran it when moving to v2. It is safe to run again (it skips what exists and never deletes your data), but there is no reason to. Versions 2.1, 2.2, 2.3, 2.4 and 2.5 need no database change.
+`supabase/migration-002.sql` converted the v1 database (single election) to the v2 layout. You ran it when moving to v2. It is safe to run again (it skips what exists and never deletes your data), but there is no reason to. Versions 2.1 through 2.6 need no database change.
 
 ## If something looks wrong after deploying
 
@@ -52,6 +52,8 @@ Two quick checks that pinpoint the cause of "changes don't stick":
   - Review tables (import, history, calculation detail) scroll sideways inside their card on narrow screens; the page itself never scrolls sideways.
   - **לוח שידור** already fitted a phone; spacing and type sizes were tightened for small screens.
   - Fixed on the way: a styling precedence issue (utility classes such as widths and paddings were sometimes overridden by the shared button/input styles) and, in the local file backend only, two simultaneous requests could overwrite each other's write.
+
+- **v2.6 — meaning of the הסכם עודפים column (raised by Sharon)**: `+1` now means what it means on air: *this list received the pair's surplus seat* when the pair's joint seats were split between the two partners (each partner gets the whole part of votes ÷ pair measure; the leftover seat goes to the partner with the higher votes ÷ (seats+1)). `0` = in an agreement but the surplus seat went to the partner (or there was none / the partner failed the threshold). In the 2022 rehearsal this shows ש"ס +1, הליכוד +1, יש עתיד +1. Until now the column showed a different, counterfactual measure (seats with the agreement minus seats if it did not exist — which gave ש"ס 0, because it would have won its 11th seat even without the agreement). That counterfactual is still available: hover the badge ("ללא ההסכם: N מנדטים"), and the full pair split is on פירוט החישוב, step 3. The seat calculation itself did not change.
 
 ## Rollback (if ever needed)
 

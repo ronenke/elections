@@ -19,11 +19,23 @@ export interface PartyRow {
   /** votes this list could lose before losing a seat; null if it has no seats or out of range */
   toLose: number | null;
   /**
-   * Effect of the list's surplus agreement: seats with the agreement minus seats without it
-   * (other agreements unchanged). null = no agreement configured for this list.
-   * 0 = has an agreement but it changed nothing (including when the partner failed the threshold).
+   * Surplus-agreement indicator in the conventional (broadcast) sense: the seats this list received as the
+   * pair's *surplus seat* when the pair's joint seats were split between the two partners (§81(d): each partner
+   * gets INT(votes ÷ pair measure); the leftover seat goes to the partner with the higher votes ÷ (seats+1)).
+   * +1 = this list got the pair's surplus seat; 0 = in an agreement but the surplus seat went to the partner
+   * (or there was none, or the partner failed the threshold); null = no agreement configured for this list.
    */
   agreementEffect: number | null;
+  /** name of the agreement partner (null when no agreement) */
+  agreementPartner: string | null;
+  /** false when the agreement cannot operate because one of the two partners failed the threshold */
+  agreementActive: boolean;
+  /**
+   * The counterfactual view: seats with the agreement minus seats if this agreement did not exist
+   * (other agreements unchanged). Can be 0 even when agreementEffect is +1 (the list would have won the
+   * seat on its own anyway). null = no agreement.
+   */
+  agreementCounterfactual: number | null;
   /**
    * How safe the list's last seat is, relative to the other lists with seats: 1 (safest, green) … 5 (most at risk, red).
    * Ranked by `toLose`; the lists are split into five equal groups by rank. null when the list has no seats.
@@ -82,8 +94,12 @@ export function dangerLevels(rows: { id: string; seats: number; toLose: number |
 export function compute(state: ElectionState, withSensitivity = true): Computed {
   const input = toEngineInput(state);
   const result = computeSeats(input);
-  const effects = withSensitivity ? agreementEffects(input, result) : new Map<string, number>();
-  const inAgreement = new Set(state.agreements.flatMap(a => [a.a, a.b]));
+  const counterfactual = withSensitivity ? agreementEffects(input, result) : new Map<string, number>();
+  const partnerOf = new Map<string, string>();
+  for (const a of state.agreements) { partnerOf.set(a.a, a.b); partnerOf.set(a.b, a.a); }
+  // surplus seat(s) each partner received in the pair split
+  const surplus = new Map<string, number>();
+  for (const ps of result.pairSplits) for (const m of ps.members) surplus.set(m.id, m.finalSeats - m.floorSeats);
   const base: Omit<PartyRow, "dangerLevel">[] = result.lists.map(l => {
     const p = state.parties.find(x => x.id === l.id)!;
     const sens = withSensitivity && result.ok && l.votes > 0 ? seatSensitivity(input, l.id) : { toGain: null, toLose: null };
@@ -91,7 +107,10 @@ export function compute(state: ElectionState, withSensitivity = true): Computed 
       id: l.id, name: l.name, letters: p.letters, blocId: p.blocId, votes: l.votes, percent: l.percent,
       passed: l.passedThreshold, thresholdMargin: l.votes - result.thresholdVotes,
       seats: l.seats, firstStageSeats: l.firstStageSeats, unitId: l.unitId, toGain: sens.toGain, toLose: sens.toLose,
-      agreementEffect: inAgreement.has(l.id) ? (effects.get(l.id) ?? 0) : null,
+      agreementEffect: partnerOf.has(l.id) ? (surplus.get(l.id) ?? 0) : null,
+      agreementPartner: partnerOf.has(l.id) ? (state.parties.find(x => x.id === partnerOf.get(l.id))?.name ?? null) : null,
+      agreementActive: partnerOf.has(l.id) && l.passedThreshold && (result.lists.find(x => x.id === partnerOf.get(l.id))?.passedThreshold ?? false),
+      agreementCounterfactual: partnerOf.has(l.id) && withSensitivity ? (counterfactual.get(l.id) ?? 0) : null,
     };
   });
   const danger = withSensitivity ? dangerLevels(base) : new Map();
