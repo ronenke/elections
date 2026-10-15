@@ -13,6 +13,8 @@ export interface PartyRow {
   thresholdMargin: number;
   seats: number;
   firstStageSeats: number;
+  /** seats received in the second distribution (seats − INT(votes ÷ measure)), the CEC's "מנדטים עודפים" per list */
+  secondStageSeats: number;
   unitId: string | null;
   /** extra votes needed for one more seat (all other lists unchanged); null if unknown / out of range */
   toGain: number | null;
@@ -106,7 +108,7 @@ export function compute(state: ElectionState, withSensitivity = true): Computed 
     return {
       id: l.id, name: l.name, letters: p.letters, blocId: p.blocId, votes: l.votes, percent: l.percent,
       passed: l.passedThreshold, thresholdMargin: l.votes - result.thresholdVotes,
-      seats: l.seats, firstStageSeats: l.firstStageSeats, unitId: l.unitId, toGain: sens.toGain, toLose: sens.toLose,
+      seats: l.seats, firstStageSeats: l.firstStageSeats, secondStageSeats: l.seats - l.firstStageSeats, unitId: l.unitId, toGain: sens.toGain, toLose: sens.toLose,
       agreementEffect: partnerOf.has(l.id) ? (surplus.get(l.id) ?? 0) : null,
       agreementPartner: partnerOf.has(l.id) ? (state.parties.find(x => x.id === partnerOf.get(l.id))?.name ?? null) : null,
       agreementActive: partnerOf.has(l.id) && l.passedThreshold && (result.lists.find(x => x.id === partnerOf.get(l.id))?.passedThreshold ?? false),

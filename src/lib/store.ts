@@ -88,6 +88,16 @@ export async function setActive(id: string): Promise<void> {
   await updateDb(db => { db.activeId = id; });
 }
 
+async function setActiveIfNone(id: string): Promise<void> {
+  if (useSupabase) {
+    // insert only if the key does not exist yet; ignoreDuplicates keeps an existing value
+    const { error } = await sb().from("app_settings").upsert({ key: "active_election", value: id }, { onConflict: "key", ignoreDuplicates: true });
+    if (error) throw new StoreError(error.message, 500);
+    return;
+  }
+  await updateDb(db => { if (!db.activeId) db.activeId = id; });
+}
+
 /** The active election; creates a seeded one on a brand-new install. */
 export async function getState(): Promise<ElectionState> {
   const id = await getActiveId();
@@ -95,12 +105,13 @@ export async function getState(): Promise<ElectionState> {
     const s = await getElection(id);
     if (s) return s;
   }
-  // nothing active: pick the most recent, or seed
+  // nothing active: pick the most recent, or seed. Activate only if nothing became active meanwhile
+  // (a concurrent "create + activate" request must win over the fallback / the seed).
   const all = await listElections();
-  if (all.length) { await setActive(all[0].id); return (await getElection(all[0].id))!; }
+  if (all.length) { await setActiveIfNone(all[0].id); return (await getElection((await getActiveId()) ?? all[0].id))!; }
   const seeded = await createElection(seedState(), "יצירת מערכת בחירות");
-  await setActive(seeded.id);
-  return seeded;
+  await setActiveIfNone(seeded.id);
+  return (await getElection((await getActiveId()) ?? seeded.id))!;
 }
 
 // ---------------------------------------------------------------- CRUD

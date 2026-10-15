@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useElection } from "@/components/useElection";
 import { n, pct, clock } from "@/lib/format";
-import { AgreementBadge, DangerDot } from "@/components/Badges";
+import { SecondStageBadge, DangerDot, secondStageSummary } from "@/components/Badges";
 import { Hemicycle } from "@/components/Hemicycle";
 import { useEffect, useState } from "react";
 
@@ -103,7 +103,7 @@ export default function Board() {
                     <div className="text-slate-400 text-sm num mt-1">{n(r.votes)} קולות · {pct(r.percent)}</div>
                     <div className="mt-2 flex items-center gap-3">
                       <DangerDot level={r.dangerLevel} toLose={r.toLose} size={10} />
-                      <AgreementBadge effect={r.agreementEffect} partner={r.agreementPartner} counterfactual={r.agreementCounterfactual} seats={r.seats} active={r.agreementActive} />
+                      <SecondStageBadge extra={r.secondStageSeats} partner={r.agreementPartner} counterfactual={r.agreementCounterfactual} seats={r.seats} active={r.agreementActive} />
                     </div>
                   </div>
                   <div className="text-5xl sm:text-6xl font-extrabold num leading-none tracking-tight">{r.seats}</div>
@@ -148,7 +148,8 @@ export default function Board() {
                 {computed.closestGain && <div className="flex flex-wrap justify-between gap-x-3"><dt className="text-slate-400">הקרובה ביותר למנדט נוסף</dt><dd className="text-left"><b>{computed.closestGain.name}</b> — עוד <span className="num">{n(computed.closestGain.toGain)}</span> קולות</dd></div>}
                 {computed.closestLoss && <div className="flex flex-wrap justify-between gap-x-3"><dt className="text-slate-400">הקרובה ביותר לאבד מנדט</dt><dd className="text-left"><b>{computed.closestLoss.name}</b> — מרווח <span className="num">{n(computed.closestLoss.toLose)}</span> קולות</dd></div>}
                 <div className="flex justify-between"><dt className="text-slate-400">קולות כשרים</dt><dd className="num">{n(computed.result.totalValidVotes)}</dd></div>
-                <div className="flex justify-between"><dt className="text-slate-400">מנדטים בשלב הראשון / עודפים</dt><dd className="num">{computed.result.firstStageTotal} / {computed.result.totalSeats - computed.result.firstStageTotal}</dd></div>
+                <div className="flex justify-between"><dt className="text-slate-400">חלוקה ראשונה / שנייה</dt><dd className="num">{computed.result.firstStageTotal} / {computed.result.totalSeats - computed.result.firstStageTotal}</dd></div>
+                {computed.result.totalSeats > computed.result.firstStageTotal && <div className="text-slate-300 text-xs leading-relaxed pr-2">המנדטים מהחלוקה השנייה: {secondStageSummary(computed.rows)}</div>}
                 <div className="flex justify-between"><dt className="text-slate-400">סה״כ מנדטים</dt><dd className={`num font-bold ${computed.result.totalSeats === 120 ? "text-emerald-300" : "text-red-300"}`}>{computed.result.totalSeats} / 120</dd></div>
               </dl>
             </div>

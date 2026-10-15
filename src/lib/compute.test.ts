@@ -25,6 +25,13 @@ describe("agreement indicator (+1 = received the pair's surplus seat)", () => {
     expect(row("meretz").agreementEffect).toBe(0);
   });
 
+  it("2022 second distribution: 113 first-stage seats, 7 extra — Likud 2, Yesh Atid, National Unity, Shas, Beiteinu, Hadash 1 each", () => {
+    expect(c.result.firstStageTotal).toBe(113);
+    const extra = Object.fromEntries(c.rows.map(r => [r.id, r.secondStageSeats]));
+    expect(extra).toMatchObject({ likud: 2, ya: 1, nu: 1, shas: 1, yb: 1, hadash: 1, rz: 0, utj: 0, raam: 0, labor: 0 });
+    expect(c.rows.reduce((s, r) => s + r.secondStageSeats, 0)).toBe(7);
+  });
+
   it("matches the engine's pair-split trace exactly", () => {
     for (const ps of c.result.pairSplits) for (const m of ps.members) expect(row(m.id).agreementEffect).toBe(m.finalSeats - m.floorSeats);
   });

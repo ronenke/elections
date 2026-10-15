@@ -40,3 +40,22 @@ export function AgreementBadge({ effect, partner, counterfactual, seats, active 
     </span>
   );
 }
+
+/**
+ * Seats from the second distribution (the CEC's "חלוקה שנייה"): +N = seats beyond INT(votes ÷ measure).
+ * The tooltip says whether the list is in a surplus agreement and what it would have without it.
+ */
+export function SecondStageBadge({ extra, partner, counterfactual, seats, active }: { extra: number; partner: string | null; counterfactual: number | null; seats: number; active: boolean }) {
+  const agreement = partner
+    ? active
+      ? ` · בהסכם עודפים עם ${partner}${counterfactual !== null ? ` — ללא ההסכם: ${seats - counterfactual} מנדטים` : ""}`
+      : ` · הסכם עודפים עם ${partner} לא פעיל (אחת השותפות לא עברה את אחוז החסימה)`
+    : " · ללא הסכם עודפים";
+  if (extra <= 0) return <span className="badge bg-slate-100 text-slate-400" title={`לא קיבלה מנדט בחלוקה השנייה${agreement}`}>0</span>;
+  return <span className="badge bg-emerald-100 text-emerald-800" title={`${extra} ${extra === 1 ? "מנדט" : "מנדטים"} מהחלוקה השנייה (מעבר ל-INT(קולות ÷ מודד))${agreement}`}>+{extra}</span>;
+}
+
+/** One line: who received the second-distribution seats, e.g. "הליכוד 2 · יש עתיד 1 · …". */
+export function secondStageSummary(rows: { name: string; secondStageSeats: number }[]): string {
+  return rows.filter(r => r.secondStageSeats > 0).sort((a, b) => b.secondStageSeats - a.secondStageSeats).map(r => `${r.name} ${r.secondStageSeats}`).join(" · ");
+}
