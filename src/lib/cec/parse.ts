@@ -238,14 +238,21 @@ function finish(rowsIn: ParsedRow[], text: string, method: "header" | "heuristic
   // ---- cross-checks: the numbers must agree with each other
   const sum = rows.reduce((s, r) => s + r.votes, 0);
   const withPct = rows.filter(r => r.percent !== null);
-  // 1. a list with a meaningful percent but tiny "votes" means we read the wrong column (e.g. mandates)
-  for (const r of rows) {
-    if (r.percent !== null && r.percent >= 0.5 && r.votes <= 200) errors.push(`"${r.name}": ${r.votes} קולות אבל ${r.percent}% — כנראה נקראה עמודה שגויה (מנדטים במקום קולות)`);
-  }
   // 2. percent must equal votes / total (use published total, else the sum of the rows)
   // without a published total, the row sum can serve as the base only when the table is complete (percents ≈ 100)
   const pctSum = withPct.reduce((s, r) => s + r.percent!, 0);
   const base = totalValidVotes ?? (withPct.length >= 3 && pctSum >= 99 ? sum : null);
+  // 1. a list with a meaningful percent but tiny "votes" means we read the wrong column (e.g. mandates) —
+  // but only when the numbers are at election scale. Early on election night 173 votes CAN be 6.5% of 2,661,
+  // so with a known base the percent check (rule 2) decides, and without one we require a large total.
+  for (const r of rows) {
+    if (r.percent === null || r.percent < 0.5 || r.votes > 200) continue;
+    const consistent = base !== null && base > 0 && Math.abs((r.votes / base) * 100 - r.percent) <= 0.06;
+    if (consistent) continue;
+    const msg = `"${r.name}": ${r.votes} קולות אבל ${r.percent}% — כנראה נקראה עמודה שגויה (מנדטים במקום קולות)`;
+    if ((base !== null && base > 0) || sum > 100000 || method === "heuristic") errors.push(msg);
+    else warnings.push(`${msg}? אם הספירה רק התחילה (סך קולות קטן) זה תקין — ודאו שסך הקולות הכשרים הועתק יחד עם הטבלה`);
+  }
   if (base === null && withPct.length) warnings.push("סך הקולות הכשרים לא זוהה בטקסט — האחוזים לא אומתו מול מספרי הקולות");
   if (base && base > 0) {
     let bad = 0;

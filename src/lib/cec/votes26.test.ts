@@ -69,6 +69,15 @@ describe("votes26 (26th Knesset) layout", () => {
     expect(r.rows.find(x => x.letters === "נר")!.votes).toBe(0);
     expect(r.totalValidVotes).toBe(14386);
   });
+  it("early on election night tiny counts are not mistaken for a mandates column (Galei Tzahal, 2,661 votes)", () => {
+    const early = "קולות כשרים עד עתה\n2,661\nשם הרשימה\tאותיות הרשימה\tאחוז מסך הקולות הכשרים\tקולות כשרים לרשימה\nהליכוד\tמחל\t26.49%\t\n705\nביחד בראשות נפתלי בנט\tרק\t6.50%\t\n173\nהתאחדות הספרדים\tשס\t4.81%\t\n128\nנעם לישראל\tני\t0.71%\t\n19\n";
+    const r = parseCecText(early);
+    expect(r.errors).toEqual([]);
+    expect(r.rows.find(x => x.letters === "רק")!.votes).toBe(173);
+    // but a real mandates column (final results scale) is still caught
+    const bad = "קולות כשרים עד עתה\n4,764,742\nשם הרשימה\tאותיות\tאחוז\tמספר הקולות\nהליכוד\tמחל\t23.41%\t32\nיש עתיד\tפה\t17.79%\t24\nש\"ס\tשס\t8.25%\t11\n";
+    expect(parseCecText(bad).errors.length).toBeGreaterThan(0);
+  });
   it("parses the server HTML", () => {
     const r = parseCecHtml(html);
     expect(r.errors).toEqual([]);

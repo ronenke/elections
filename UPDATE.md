@@ -59,6 +59,8 @@ Two quick checks that pinpoint the cause of "changes don't stick":
 
 - **v2.8 — election night fix for votes26**: the CEC site wraps each vote count in a block element, so a Ctrl+A/Ctrl+C copy puts the number on the line *after* "name ⇥ letters ⇥ percent ⇥"; the paste parser now re-attaches it (plus a fallback for copies where every cell is on its own line). The site's bot protection answers automated requests with an empty "202" page, so **משיכה מהאתר cannot work from the server**; the button now says so explicitly instead of "no table found". Use the paste: open https://votes26.bechirot.gov.il/nationalresults?lang=he, Ctrl+A, Ctrl+C, paste, ניתוח הטקסט, review, אישור וייבוא. "קולות כשרים עד עתה" is read as the total for the cross-check.
 
+- **v2.8.1**: early on election night the sanity check "tiny votes next to a real percentage = mandates column" fired on real numbers (173 votes = 6.5% of 2,661 counted). It now trusts the percent ÷ total cross-check when the total is known, and only blocks when the table has no headers or the numbers are at full-election scale.
+
 ## Rollback (if ever needed)
 
 Vercel → Deployments → previous deployment → ⋯ → *Promote to Production*. The v1 code reads `election_state`, which the migration leaves untouched.
