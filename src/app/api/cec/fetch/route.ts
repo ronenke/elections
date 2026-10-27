@@ -23,6 +23,9 @@ export async function POST(req: Request) {
     clearTimeout(t);
     if (!res.ok) return json({ error: `אתר ועדת הבחירות החזיר שגיאה ${res.status}` }, { status: 502 });
     const html = await res.text();
+    if (res.status === 202 || html.length < 2000 || !/<table/i.test(html)) {
+      return json({ error: `אתר ועדת הבחירות לא מחזיר את הטבלה לגישה אוטומטית (תשובה ${res.status}, ${html.length} תווים) — הגנת הבוטים של האתר דורשת דפדפן. השתמשו בהדבקה: פתחו ${target} בדפדפן, Ctrl+A, Ctrl+C, והדביקו כאן.` }, { status: 502 });
+    }
     const parsed = parseCecHtml(html);
     return json({ ...parsed, rows: matchRows(parsed.rows, state.parties), fetchedAt: new Date().toISOString(), url: target });
   } catch (e) {

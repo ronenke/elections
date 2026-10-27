@@ -80,12 +80,43 @@ function htmlToRows(html: string): string[][] {
   return rows;
 }
 
+const pureNumber = /^[\d][\d,.\s ]*%?$/;
+
 function textToRows(text: string): string[][] {
-  return text
-    .split(/\r?\n/)
-    .map(l => l.trim())
-    .filter(Boolean)
-    .map(l => (l.includes("\t") ? l.split("\t") : l.split(/\s{2,}|\s*\|\s*/)).map(c => c.trim()).filter(Boolean));
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const rows: string[][] = [];
+  for (const l of lines) {
+    const cells = (l.includes("\t") ? l.split("\t") : l.split(/\s{2,}|\s*\|\s*/)).map(c => c.trim()).filter(Boolean);
+    if (!cells.length) continue;
+    // The votes26 site wraps the vote count in a block element, so a copy of the table puts the number on
+    // its own line right after "name ⇥ letters ⇥ percent ⇥". Re-attach such a number to the row above
+    // when that row has text cells but no vote count yet.
+    const prev = rows[rows.length - 1];
+    if (cells.length === 1 && pureNumber.test(cells[0]) && !cells[0].includes("%") && prev && prev.some(c => /[א-ת]/.test(c)) && !prev.some(c => toInt(c) !== null)) {
+      prev.push(cells[0]);
+      continue;
+    }
+    rows.push(cells);
+  }
+  return rows;
+}
+
+/**
+ * Fallback for a copy where every cell landed on its own line (phone copy, PDF): walk the tokens and close a row
+ * at the first integer that follows a percent. Only used when the line-based parse finds no rows.
+ */
+function tokensToRows(text: string): string[][] {
+  const tokens = text.split(/\r?\n|\t|\s*\|\s*/).map(t => t.trim()).filter(Boolean);
+  const rows: string[][] = [];
+  let cur: string[] = [];
+  const headerish = (t: string) => /^(שם|אותיות|אחוז|קולות|מנדטים|מספר הקולות)/.test(t);
+  for (const t of tokens) {
+    // a header row (two or more column titles) ends when the first non-title token arrives
+    if (cur.length >= 2 && cur.every(headerish) && !headerish(t)) { rows.push(cur); cur = []; }
+    cur.push(t);
+    if (toInt(t) !== null && cur.some(c => toPercent(c) !== null) && cur.some(c => /[א-ת]/.test(c))) { rows.push(cur); cur = []; }
+  }
+  return rows;
 }
 
 // ---------------------------------------------------------------- column identification
@@ -178,7 +209,11 @@ export function parseCecHtml(html: string): ParsedResults {
 }
 
 export function parseCecText(text: string): ParsedResults {
-  const { parsed, method } = parseRows(textToRows(text));
+  let { parsed, method } = parseRows(textToRows(text));
+  if (!parsed.length) {
+    const alt = parseRows(tokensToRows(text));
+    if (alt.parsed.length) ({ parsed, method } = alt);
+  }
   return finish(parsed, text, method);
 }
 
